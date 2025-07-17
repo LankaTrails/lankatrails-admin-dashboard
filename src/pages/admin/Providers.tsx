@@ -7,6 +7,7 @@ import { Input } from "@/components/ui/input";
 import { Table, TableBody, TableCell, TableHead, TableHeader, TableRow } from "@/components/ui/table";
 import { BadgeCheck, BadgeX, Eye, ListFilter, Search } from 'lucide-react';
 import { motion } from 'framer-motion';
+import { useNavigate } from "react-router-dom";
 
 // Mock data - in a real app, this would come from an API
 const allProviders = [
@@ -23,6 +24,7 @@ const allProviders = [
 const Providers = () => {
     const [searchTerm, setSearchTerm] = useState('');
     const [statusFilters, setStatusFilters] = useState({ Approved: true, Pending: true, Rejected: true });
+    const navigate = useNavigate();
 
     const handleStatusChange = (status: string) => {
         setStatusFilters(prev => ({ ...prev, [status]: !prev[status] }));
@@ -100,9 +102,7 @@ const Providers = () => {
                                         <TableCell className="hidden lg:table-cell">{provider.date}</TableCell>
                                         <TableCell className="text-right">
                                             <div className="flex items-center justify-end gap-2">
-                                                <Button variant="outline" size="icon" className="h-8 w-8 hover:bg-primary/10"><Eye className="h-4 w-4" /></Button>
-                                                <Button variant="outline" size="icon" className="h-8 w-8 text-green-500 hover:bg-green-500/10"><BadgeCheck className="h-4 w-4" /></Button>
-                                                <Button variant="outline" size="icon" className="h-8 w-8 text-red-500 hover:bg-red-500/10"><BadgeX className="h-4 w-4" /></Button>
+                                                <Button variant="outline" size="icon" className="h-8 w-8 hover:bg-primary/10" onClick={() => navigate(`/admin/providers/${encodeURIComponent(provider.name)}`)}><Eye className="h-4 w-4" /></Button>
                                             </div>
                                         </TableCell>
                                     </motion.tr>
