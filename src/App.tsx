@@ -1,4 +1,3 @@
-
 import { Toaster } from "@/components/ui/toaster";
 import { Toaster as Sonner } from "@/components/ui/sonner";
 import { TooltipProvider } from "@/components/ui/tooltip";
@@ -12,6 +11,8 @@ import AdminDashboard from './pages/admin/Dashboard';
 import Providers from './pages/admin/Providers';
 import Bookings from './pages/admin/Bookings';
 import Analytics from './pages/admin/Analytics';
+import Complaints from './pages/admin/Complaints';
+import ComplaintDetail from './pages/admin/ComplaintDetail';
 
 
 const queryClient = new QueryClient();
@@ -30,6 +31,8 @@ const App = () => (
             <Route index element={<AdminDashboard />} />
             <Route path="providers" element={<Providers />} />
             <Route path="bookings" element={<Bookings />} />
+            <Route path="complaints" element={<Complaints />} />
+            <Route path="complaints/:id" element={<ComplaintDetail />} />
             <Route path="analytics" element={<Analytics />} />
           </Route>
         </Routes>

@@ -1,5 +1,5 @@
 import {
-  Bell, Home, LineChart, Package2, Settings, ShoppingCart, Users, LogOut
+  Bell, Home, LineChart, Package2, Settings, ShoppingCart, Users, LogOut, AlertCircle
 } from "lucide-react"
 import { Badge } from "@/components/ui/badge"
 import { Button } from "@/components/ui/button"
@@ -10,6 +10,7 @@ const navItems = [
   { to: "/admin", label: "Dashboard", icon: Home },
   { to: "/admin/providers", label: "Providers", icon: Users, badge: 6 },
   { to: "/admin/bookings", label: "Bookings", icon: ShoppingCart },
+  { to: "/admin/complaints", label: "Complaints", icon: AlertCircle, badge: 3 },
   { to: "/admin/analytics", label: "Analytics", icon: LineChart },
 ];
 
