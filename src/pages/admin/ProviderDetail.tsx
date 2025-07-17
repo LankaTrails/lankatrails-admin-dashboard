@@ -3,7 +3,8 @@ import { Card, CardContent, CardHeader, CardTitle, CardDescription } from "@/com
 import { Badge } from "@/components/ui/badge";
 import { Button } from "@/components/ui/button";
 import { motion } from "framer-motion";
-import { ArrowLeft, User, Calendar, MapPin, Building2, FileText, Mail, Phone, IdCard, Briefcase } from "lucide-react";
+import { ArrowLeft, User, Calendar, MapPin, Building2, FileText, Mail, Phone, IdCard, Briefcase, CheckCircle, XCircle, X as CloseIcon } from "lucide-react";
+import { useState } from "react";
 
 // Expanded mock data with all requested fields
 const allProviders = [
@@ -60,6 +61,12 @@ const ProviderDetail = () => {
   const navigate = useNavigate();
   const provider = allProviders.find(p => p.name === name);
 
+  // Local state for file approval/decline
+  const [regFileStatus, setRegFileStatus] = useState<'pending' | 'accepted' | 'declined'>('pending');
+  const [idFileStatus, setIdFileStatus] = useState<'pending' | 'accepted' | 'declined'>('pending');
+  // Modal state for viewing files
+  const [viewFile, setViewFile] = useState<null | { url: string; title: string }>(null);
+
   if (!provider) {
     return (
       <div className="flex flex-col items-center justify-center min-h-[60vh]">
@@ -70,6 +77,13 @@ const ProviderDetail = () => {
   }
 
   const statusInfo = getStatusVariant(provider.status);
+
+  // Helper to render status feedback
+  const renderFileStatus = (status: 'pending' | 'accepted' | 'declined') => {
+    if (status === 'accepted') return <span className="flex items-center gap-1 text-green-600 font-semibold ml-2"><CheckCircle className="h-4 w-4" /> Accepted</span>;
+    if (status === 'declined') return <span className="flex items-center gap-1 text-red-600 font-semibold ml-2"><XCircle className="h-4 w-4" /> Declined</span>;
+    return null;
+  };
 
   return (
     <motion.div initial={{ opacity: 0, y: 40 }} animate={{ opacity: 1, y: 0 }} transition={{ duration: 0.5 }} className="w-full mx-auto">
@@ -102,39 +116,69 @@ const ProviderDetail = () => {
       <Card className="shadow-2xl border-2 border-primary/20 bg-white/95 rounded-t-none rounded-b-2xl w-full max-w-3xl mx-auto -mt-6 z-10 relative">
         <CardContent className="space-y-8 w-full pt-10">
           {/* Meta Info Bar */}
-          <div className="flex flex-wrap gap-6 items-center justify-center bg-primary/5 rounded-lg p-4 border border-primary/10 shadow-inner">
-            <div className="flex items-center gap-2"><Building2 className="h-5 w-5 text-primary" /><span className="font-semibold text-gray-700">Business Name:</span> {provider.businessName}</div>
-            <div className="flex items-center gap-2"><Briefcase className="h-5 w-5 text-primary" /><span className="font-semibold text-gray-700">Business Type:</span> {provider.businessType}</div>
-            <div className="flex items-center gap-2"><MapPin className="h-5 w-5 text-primary" /><span className="font-semibold text-gray-700">Location:</span> {provider.location}</div>
-            <div className="flex items-center gap-2"><Calendar className="h-5 w-5 text-primary" /><span className="font-semibold text-gray-700">Registered On:</span> {provider.date}</div>
+          <div className="grid grid-cols-1 md:grid-cols-2 gap-6 bg-primary/5 rounded-lg p-6 border border-primary/10 shadow-inner">
+            <div className="flex items-center gap-2"><Building2 className="h-5 w-5 text-primary" /><span className="font-semibold text-gray-700">Business Name:</span> <span className="ml-1 text-gray-800">{provider.businessName}</span></div>
+            <div className="flex items-center gap-2"><Briefcase className="h-5 w-5 text-primary" /><span className="font-semibold text-gray-700">Business Type:</span> <span className="ml-1 text-gray-800">{provider.businessType}</span></div>
+            <div className="flex items-center gap-2"><MapPin className="h-5 w-5 text-primary" /><span className="font-semibold text-gray-700">Location:</span> <span className="ml-1 text-gray-800">{provider.location}</span></div>
+            <div className="flex items-center gap-2"><Calendar className="h-5 w-5 text-primary" /><span className="font-semibold text-gray-700">Registered On:</span> <span className="ml-1 text-gray-800">{provider.date}</span></div>
           </div>
           {/* Business Description */}
           <div>
             <h3 className="text-lg font-semibold mb-2 text-primary-700 flex items-center gap-2"><FileText className="h-5 w-5 text-primary" /> Business Description</h3>
-            <p className="text-gray-700 bg-primary/5 rounded-lg p-6 border-l-4 border-primary/40 border border-primary/10 shadow-inner text-lg">
+            <p className="text-gray-700 bg-primary/5 rounded-lg p-6 border-l-4 border-primary/40 border border-primary/10 shadow-inner text-lg text-left">
               {provider.businessDescription}
             </p>
           </div>
           {/* Business Registration */}
-          <div className="flex flex-wrap gap-6 items-center justify-center bg-primary/5 rounded-lg p-4 border border-primary/10 shadow-inner">
-            <div className="flex items-center gap-2"><IdCard className="h-5 w-5 text-primary" /><span className="font-semibold text-gray-700">Business Reg. No:</span> {provider.businessRegistrationNumber}</div>
-            <div className="flex items-center gap-2"><FileText className="h-5 w-5 text-primary" /><span className="font-semibold text-gray-700">Business Reg. File:</span> <a href={provider.businessRegistrationFile} download className="text-primary underline">Download</a></div>
+          <div className="grid grid-cols-1 md:grid-cols-2 gap-6 bg-primary/5 rounded-lg p-6 border border-primary/10 shadow-inner">
+            <div className="flex items-center gap-2"><IdCard className="h-5 w-5 text-primary" /><span className="font-semibold text-gray-700">Business Reg. No:</span> <span className="ml-1 text-gray-800">{provider.businessRegistrationNumber}</span></div>
+            <div>
+              <div className="bg-white rounded-lg border border-primary/20 shadow p-4 flex flex-col gap-2">
+                <div className="flex items-center gap-2"><FileText className="h-5 w-5 text-primary" /><span className="font-semibold text-gray-700">Business Reg. File:</span> <button className="text-primary underline ml-1" onClick={() => setViewFile({ url: provider.businessRegistrationFile, title: 'Business Registration Document' })}>View</button></div>
+                <div className="flex gap-2 mt-2">
+                  <Button size="sm" variant="outline" onClick={() => setRegFileStatus('accepted')} disabled={regFileStatus==='accepted'}><CheckCircle className="h-4 w-4 mr-1 text-green-600" /> Accept</Button>
+                  <Button size="sm" variant="outline" onClick={() => setRegFileStatus('declined')} disabled={regFileStatus==='declined'}><XCircle className="h-4 w-4 mr-1 text-red-600" /> Decline</Button>
+                  {renderFileStatus(regFileStatus)}
+                </div>
+              </div>
+            </div>
           </div>
           {/* Contact Info */}
-          <div className="flex flex-wrap gap-6 items-center justify-center bg-primary/5 rounded-lg p-4 border border-primary/10 shadow-inner">
-            <div className="flex items-center gap-2"><User className="h-5 w-5 text-primary" /><span className="font-semibold text-gray-700">Contact Person:</span> {provider.contactPersonName}</div>
-            <div className="flex items-center gap-2"><Phone className="h-5 w-5 text-primary" /><span className="font-semibold text-gray-700">Phone:</span> {provider.contactPhone}</div>
-            <div className="flex items-center gap-2"><Mail className="h-5 w-5 text-primary" /><span className="font-semibold text-gray-700">Contact Email:</span> {provider.contactEmail}</div>
-            <div className="flex items-center gap-2"><IdCard className="h-5 w-5 text-primary" /><span className="font-semibold text-gray-700">Identity File:</span> <a href={provider.contactPersonIdentityFile} download className="text-primary underline">Download</a></div>
-            <div className="flex items-center gap-2"><Briefcase className="h-5 w-5 text-primary" /><span className="font-semibold text-gray-700">Position:</span> {provider.position}</div>
+          <div className="grid grid-cols-1 md:grid-cols-2 gap-6 bg-primary/5 rounded-lg p-6 border border-primary/10 shadow-inner">
+            <div className="flex items-center gap-2"><User className="h-5 w-5 text-primary" /><span className="font-semibold text-gray-700">Contact Person:</span> <span className="ml-1 text-gray-800">{provider.contactPersonName}</span></div>
+            <div className="flex items-center gap-2"><Phone className="h-5 w-5 text-primary" /><span className="font-semibold text-gray-700">Phone:</span> <span className="ml-1 text-gray-800">{provider.contactPhone}</span></div>
+            <div className="flex items-center gap-2"><Mail className="h-5 w-5 text-primary" /><span className="font-semibold text-gray-700">Contact Email:</span> <span className="ml-1 text-gray-800">{provider.contactEmail}</span></div>
+            <div>
+              <div className="bg-white rounded-lg border border-primary/20 shadow p-4 flex flex-col gap-2">
+                <div className="flex items-center gap-2"><IdCard className="h-5 w-5 text-primary" /><span className="font-semibold text-gray-700">Identity File:</span> <button className="text-primary underline ml-1" onClick={() => setViewFile({ url: provider.contactPersonIdentityFile, title: 'Identity Document' })}>View</button></div>
+                <div className="flex gap-2 mt-2">
+                  <Button size="sm" variant="outline" onClick={() => setIdFileStatus('accepted')} disabled={idFileStatus==='accepted'}><CheckCircle className="h-4 w-4 mr-1 text-green-600" /> Accept</Button>
+                  <Button size="sm" variant="outline" onClick={() => setIdFileStatus('declined')} disabled={idFileStatus==='declined'}><XCircle className="h-4 w-4 mr-1 text-red-600" /> Decline</Button>
+                  {renderFileStatus(idFileStatus)}
+                </div>
+              </div>
+            </div>
+            <div className="flex items-center gap-2 md:col-span-2 mt-2"><Briefcase className="h-5 w-5 text-primary" /><span className="font-semibold text-gray-700">Position:</span> <span className="ml-1 text-gray-800">{provider.position}</span></div>
           </div>
           {/* Login Email */}
           <div className="flex items-center gap-2 bg-primary/5 rounded-lg p-4 border border-primary/10 shadow-inner">
             <Mail className="h-5 w-5 text-primary" />
-            <span className="font-semibold text-gray-700">Login Email:</span> {provider.loginEmail}
+            <span className="font-semibold text-gray-700">Login Email:</span> <span className="ml-1 text-gray-800">{provider.loginEmail}</span>
           </div>
         </CardContent>
       </Card>
+      {/* Modal for file view */}
+      {viewFile && (
+        <div className="fixed inset-0 z-50 flex items-center justify-center bg-black/60">
+          <div className="bg-white rounded-lg shadow-2xl max-w-2xl w-full p-4 relative flex flex-col">
+            <button className="absolute top-2 right-2 text-gray-500 hover:text-primary" onClick={() => setViewFile(null)}><CloseIcon className="h-6 w-6" /></button>
+            <h2 className="text-xl font-bold mb-4 text-primary-700">{viewFile.title}</h2>
+            <div className="flex-1 min-h-[400px] flex items-center justify-center">
+              <iframe src={viewFile.url} title={viewFile.title} className="w-full h-[60vh] rounded border" />
+            </div>
+          </div>
+        </div>
+      )}
     </motion.div>
   );
 };
