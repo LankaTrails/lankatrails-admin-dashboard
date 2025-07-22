@@ -10,12 +10,12 @@ import { BarChart, Bar, PieChart, Pie, Cell, XAxis, YAxis, CartesianGrid, Toolti
 import { BadgeCheck, BadgeX, Eye } from "lucide-react";
 
 const providers = [
-  { name: "Ella Spice Garden", owner: "Nimal Perera", service: "Activities & Experiences", location: "Ella, Uva", status: "Approved", date: "2023-06-23" },
+  { name: "Ella Spice Garden", owner: "Nimal Perera", service: "Activities", location: "Ella, Uva", status: "Approved", date: "2023-06-23" },
   { name: "Kandy View Hotel", owner: "Sunil Jayasuriya", service: "Accommodation", location: "Kandy, Central", status: "Pending", date: "2023-06-24" },
   { name: "Galle Fort Tours", owner: "Anura Bandara", service: "Tour Guide", location: "Galle, Southern", status: "Approved", date: "2023-06-25" },
   { name: "Colombo Cabs", owner: "Saman Kumara", service: "Transport Services", location: "Colombo, Western", status: "Rejected", date: "2023-06-26" },
   { name: "Mirissa Beach Restaurant", owner: "Kamal Silva", service: "Food & Restaurants", location: "Mirissa, Southern", status: "Pending", date: "2023-06-27" },
-  { name: "Sigiriya Adventures", owner: "Kamala Devi", service: "Activities & Experiences", location: "Sigiriya, Central", status: "Approved", date: "2023-06-28" },
+  { name: "Sigiriya Adventures", owner: "Kamala Devi", service: "Activities", location: "Sigiriya, Central", status: "Approved", date: "2023-06-28" },
 ];
 
 const monthlySignups = [
@@ -42,10 +42,10 @@ const Dashboard = () => {
           <Card className="hover:shadow-lg transition-shadow">
             <CardHeader className="flex flex-row items-center justify-between space-y-0 pb-2">
               <CardTitle className="text-sm font-medium">Total Revenue</CardTitle>
-              <span className="text-green-500">$</span>
+              <span className="text-green-500">LKR</span>
             </CardHeader>
             <CardContent>
-              <div className="text-2xl font-bold">$45,231.89</div>
+              <div className="text-2xl font-bold">LKR45,231.89</div>
               <p className="text-xs text-muted-foreground">+20.1% from last month</p>
             </CardContent>
           </Card>

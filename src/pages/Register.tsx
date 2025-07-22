@@ -126,7 +126,7 @@ const Register = () => {
                         <SelectItem value="food">Food & Restaurants</SelectItem>
                         <SelectItem value="transport">Transport Services</SelectItem>
                         <SelectItem value="guide">Tour Guide</SelectItem>
-                        <SelectItem value="activities">Activities & Experiences</SelectItem>
+                        <SelectItem value="activities">Activities</SelectItem>
                       </SelectContent>
                     </Select>
                   </div>

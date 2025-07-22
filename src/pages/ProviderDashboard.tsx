@@ -30,7 +30,7 @@ const ProviderDashboard = () => {
     },
     {
       title: "Revenue",
-      value: "$3,450",
+      value: "LKR3,450",
       change: "+18%",
       icon: <DollarSign className="w-5 h-5 text-green-500" />
     },
@@ -55,7 +55,7 @@ const ProviderDashboard = () => {
       service: "Sigiriya Rock Climb Guide",
       date: "2024-01-15",
       status: "confirmed",
-      amount: "$85"
+      amount: "Rs.85"
     },
     {
       id: 2,
@@ -63,7 +63,7 @@ const ProviderDashboard = () => {
       service: "Cultural Triangle Tour",
       date: "2024-01-18",
       status: "pending",
-      amount: "$150"
+      amount: "Rs.150"
     },
     {
       id: 3,
@@ -71,7 +71,7 @@ const ProviderDashboard = () => {
       service: "Wildlife Safari - Yala",
       date: "2024-01-20",
       status: "completed",
-      amount: "$120"
+      amount: "Rs.120"
     }
   ];
 
@@ -80,7 +80,7 @@ const ProviderDashboard = () => {
       id: 1,
       title: "Sigiriya Rock Climb Guide",
       type: "Tour Guide",
-      price: "$85/day",
+      price: "Rs.85/day",
       bookings: "12 this month",
       rating: 4.9,
       status: "active"
@@ -89,7 +89,7 @@ const ProviderDashboard = () => {
       id: 2,
       title: "Cultural Triangle Tour",
       type: "Tour Package",
-      price: "$150/person",
+      price: "Rs.150/person",
       bookings: "8 this month",
       rating: 4.7,
       status: "active"
@@ -98,7 +98,7 @@ const ProviderDashboard = () => {
       id: 3,
       title: "Wildlife Safari - Yala",
       type: "Activity",
-      price: "$120/person",
+      price: "Rs.120/person",
       bookings: "15 this month",
       rating: 4.8,
       status: "active"

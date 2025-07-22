@@ -12,7 +12,7 @@ const revenueData = [
 
 const bookingsByCategoryData = [
   { category: 'Accommodation', bookings: 120 },
-  { category: 'Experiences', bookings: 250 },
+  { category: 'Activities', bookings: 250 },
   { category: 'Tours', bookings: 180 },
   { category: 'Transport', bookings: 90 },
   { category: 'Food', bookings: 150 },
@@ -29,7 +29,7 @@ const providerLocationData = [
 const COLORS = ['#0088FE', '#00C49F', '#FFBB28', '#FF8042', '#AF19FF'];
 
 const kpiData = [
-  { title: "Total Revenue", value: "$125,650", icon: DollarSign, change: "+15.2%", changeType: "increase" },
+  { title: "Total Revenue", value: "LKR125,650", icon: DollarSign, change: "+15.2%", changeType: "increase" },
   { title: "Total Bookings", value: "8,450", icon: ShoppingCart, change: "+12.1%", changeType: "increase" },
   { title: "Active Providers", value: "1,250", icon: Users, change: "+5.8%", changeType: "increase" },
   { title: "Conversion Rate", value: "4.8%", icon: Activity, change: "-0.5%", changeType: "decrease" },
@@ -70,7 +70,7 @@ const Analytics = () => {
                 <LineChart data={revenueData} margin={{ top: 5, right: 20, left: -10, bottom: 5 }}>
                   <CartesianGrid strokeDasharray="3 3" vertical={false} />
                   <XAxis dataKey="month" fontSize={12} tickLine={false} axisLine={false} />
-                  <YAxis fontSize={12} tickLine={false} axisLine={false} tickFormatter={(value) => `$${value / 1000}k`} />
+                  <YAxis fontSize={12} tickLine={false} axisLine={false} tickFormatter={(value) => `LKR${value / 1000}k`} />
                   <Tooltip cursor={{fill: 'rgba(100,100,100,0.1)'}} />
                   <Legend />
                   <Line type="monotone" dataKey="revenue" stroke="#16a34a" strokeWidth={2} dot={{ r: 4 }} activeDot={{ r: 6 }} />

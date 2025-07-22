@@ -51,8 +51,7 @@ const Bookings = () => {
         <motion.div initial="hidden" animate="visible" variants={{ visible: { transition: { staggerChildren: 0.1 } } }}>
             <Card>
                 <CardHeader>
-                    <CardTitle>Bookings Management</CardTitle>
-                    <CardDescription>View, track, and manage all customer bookings.</CardDescription>
+                    <CardTitle>Bookings</CardTitle>
                 </CardHeader>
                 <CardContent>
                     <div className="flex items-center justify-between gap-4 mb-6">
@@ -91,7 +90,6 @@ const Bookings = () => {
                                     <TableHead className="hidden md:table-cell">Provider</TableHead>
                                     <TableHead className="hidden lg:table-cell">Date</TableHead>
                                     <TableHead>Status</TableHead>
-                                    <TableHead className="text-right">Actions</TableHead>
                                 </TableRow>
                             </TableHeader>
                             <TableBody>
@@ -108,9 +106,6 @@ const Bookings = () => {
                                                     <statusInfo.icon className="mr-1 h-3 w-3" />
                                                     {booking.status}
                                                 </Badge>
-                                            </TableCell>
-                                            <TableCell className="text-right">
-                                                <Button variant="outline" size="icon" className="h-8 w-8 hover:bg-primary/10"><Eye className="h-4 w-4" /></Button>
                                             </TableCell>
                                         </motion.tr>
                                     );

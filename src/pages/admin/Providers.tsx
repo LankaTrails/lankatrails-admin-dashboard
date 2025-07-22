@@ -11,12 +11,12 @@ import { useNavigate } from "react-router-dom";
 
 // Mock data - in a real app, this would come from an API
 const allProviders = [
-    { name: "Ella Spice Garden", owner: "Nimal Perera", service: "Activities & Experiences", location: "Ella, Uva", status: "Approved", date: "2023-06-23" },
+    { name: "Ella Spice Garden", owner: "Nimal Perera", service: "Activities", location: "Ella, Uva", status: "Approved", date: "2023-06-23" },
     { name: "Kandy View Hotel", owner: "Sunil Jayasuriya", service: "Accommodation", location: "Kandy, Central", status: "Pending", date: "2023-06-24" },
     { name: "Galle Fort Tours", owner: "Anura Bandara", service: "Tour Guide", location: "Galle, Southern", status: "Approved", date: "2023-06-25" },
     { name: "Colombo Cabs", owner: "Saman Kumara", service: "Transport Services", location: "Colombo, Western", status: "Rejected", date: "2023-06-26" },
     { name: "Mirissa Beach Restaurant", owner: "Kamal Silva", service: "Food & Restaurants", location: "Mirissa, Southern", status: "Pending", date: "2023-06-27" },
-    { name: "Sigiriya Adventures", owner: "Kamala Devi", service: "Activities & Experiences", location: "Sigiriya, Central", status: "Approved", date: "2023-06-28" },
+    { name: "Sigiriya Adventures", owner: "Kamala Devi", service: "Activities", location: "Sigiriya, Central", status: "Approved", date: "2023-06-28" },
     { name: "Nuwara Eliya Grand Hotel", owner: "Priya Kumar", service: "Accommodation", location: "Nuwara Eliya, Central", status: "Approved", date: "2023-07-01" },
     { name: "Yala Safari Jeeps", owner: "Ajith Perera", service: "Transport Services", location: "Yala, Southern", status: "Pending", date: "2023-07-02" },
 ];
