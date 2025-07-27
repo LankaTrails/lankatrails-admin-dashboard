@@ -7,15 +7,38 @@ import { Link, useNavigate } from 'react-router-dom';
 import { Eye, EyeOff, LogIn } from 'lucide-react';
 import { motion } from 'framer-motion';
 import Header from '@/components/Header';
+import { useAuth } from '@/hooks/useAuth';
+import { useAppSelector } from '@/store';
+
 
 const Login = () => {
+  const {login} = useAuth();
   const [showPassword, setShowPassword] = useState(false);
-  const navigate = useNavigate();
+  
+  const [email, setEmail] =useState('');
+  const [password,setPassowrd] = useState('');
 
-  const handleLogin = (e: React.FormEvent) => {
+  const navigate = useNavigate();
+  const {user} = useAppSelector(state => state.auth);
+  const handleLogin = async (e: React.FormEvent) => {
     e.preventDefault();
     // Handle login logic here
-    navigate('/admin');
+    try {
+      
+       const User = await login(email,password);
+      //  console.log("redux ",user.role);
+       if (user.role==='ROLE_ADMIN'){
+          
+          navigate('/admin');
+       }else{
+        console.log('Not an Admin')
+       }
+       
+    } catch (err:any) {
+      alert(err.message || 'Login Failed');
+      
+    }
+   
   };
 
   return (
@@ -24,7 +47,7 @@ const Login = () => {
       style={{ backgroundImage: "url('/login.jpg')" }}
     >
       <div className="min-h-screen bg-black/40">
-        <Header />
+        {/* <Header /> */}
         <div className="container mx-auto px-4 py-12 flex items-center justify-center min-h-screen">
           <motion.div 
             className="max-w-md w-full"
@@ -76,6 +99,8 @@ const Login = () => {
                       placeholder="your.business@example.com"
                       required
                       className="bg-white/70 h-11"
+                      value={email}
+                      onChange={(e) => setEmail(e.target.value)}
                     />
                   </div>
 
@@ -88,6 +113,8 @@ const Login = () => {
                         placeholder="Enter your password"
                         required
                         className="bg-white/70 h-11 pr-10"
+                        value={password}
+                        onChange={(e) => setPassowrd(e.target.value)}
                       />
                       <button
                         type="button"
