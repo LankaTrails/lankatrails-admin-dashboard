@@ -29,7 +29,7 @@ const providerLocationData = [
 const COLORS = ['#0088FE', '#00C49F', '#FFBB28', '#FF8042', '#AF19FF'];
 
 const kpiData = [
-  { title: "Total Revenue", value: "LKR125,650", icon: DollarSign, change: "+15.2%", changeType: "increase" },
+  { title: "Commission Earnings", value: "LKR18,847", icon: DollarSign, change: "+15.2%", changeType: "increase" },
   { title: "Total Bookings", value: "8,450", icon: ShoppingCart, change: "+12.1%", changeType: "increase" },
   { title: "Active Providers", value: "1,250", icon: Users, change: "+5.8%", changeType: "increase" },
   { title: "Conversion Rate", value: "4.8%", icon: Activity, change: "-0.5%", changeType: "decrease" },
@@ -62,8 +62,8 @@ const Analytics = () => {
         <motion.div variants={itemVariants}>
           <Card className="hover:shadow-lg transition-shadow">
             <CardHeader>
-              <CardTitle>Revenue Trend</CardTitle>
-              <CardDescription>Monthly revenue over the last 8 months.</CardDescription>
+              <CardTitle>Commission Earnings Trend</CardTitle>
+              <CardDescription>Monthly commission earnings over the last 8 months.</CardDescription>
             </CardHeader>
             <CardContent className="h-80">
               <ResponsiveContainer width="100%" height="100%">

@@ -15,11 +15,21 @@ import {
   DollarSign,
   Users,
   Clock,
-  CheckCircle
+  CheckCircle,
+  TrendingUp,
+  Percent
 } from 'lucide-react';
 
 const ProviderDashboard = () => {
   const [activeTab, setActiveTab] = useState('overview');
+
+  // Commission rate (15% website commission)
+  const COMMISSION_RATE = 0.15;
+  
+  // Calculate earnings breakdown
+  const totalRevenue = 3450; // LKR
+  const commission = totalRevenue * COMMISSION_RATE;
+  const providerEarnings = totalRevenue - commission;
 
   const stats = [
     {
@@ -29,22 +39,22 @@ const ProviderDashboard = () => {
       icon: <Calendar className="w-5 h-5 text-primary-500" />
     },
     {
-      title: "Revenue",
-      value: "LKR3,450",
+      title: "Your Earnings",
+      value: `LKR${providerEarnings.toLocaleString()}`,
       change: "+18%",
       icon: <DollarSign className="w-5 h-5 text-green-500" />
+    },
+    {
+      title: "Website Commission",
+      value: `LKR${commission.toLocaleString()}`,
+      change: "+18%",
+      icon: <Percent className="w-5 h-5 text-blue-500" />
     },
     {
       title: "Rating",
       value: "4.8",
       change: "+0.2",
       icon: <Star className="w-5 h-5 text-yellow-500" />
-    },
-    {
-      title: "Active Listings",
-      value: "8",
-      change: "+2",
-      icon: <Eye className="w-5 h-5 text-blue-500" />
     }
   ];
 
@@ -55,7 +65,9 @@ const ProviderDashboard = () => {
       service: "Sigiriya Rock Climb Guide",
       date: "2024-01-15",
       status: "confirmed",
-      amount: "Rs.85"
+      totalAmount: 85,
+      yourEarnings: 72.25,
+      commission: 12.75
     },
     {
       id: 2,
@@ -63,7 +75,9 @@ const ProviderDashboard = () => {
       service: "Cultural Triangle Tour",
       date: "2024-01-18",
       status: "pending",
-      amount: "Rs.150"
+      totalAmount: 150,
+      yourEarnings: 127.50,
+      commission: 22.50
     },
     {
       id: 3,
@@ -71,7 +85,9 @@ const ProviderDashboard = () => {
       service: "Wildlife Safari - Yala",
       date: "2024-01-20",
       status: "completed",
-      amount: "Rs.120"
+      totalAmount: 120,
+      yourEarnings: 102.00,
+      commission: 18.00
     }
   ];
 
@@ -149,6 +165,33 @@ const ProviderDashboard = () => {
 
           {/* Overview Tab */}
           <TabsContent value="overview" className="space-y-6">
+            {/* Earnings Summary Card */}
+            <Card className="bg-gradient-to-r from-green-50 to-blue-50 border-green-200">
+              <CardHeader>
+                <CardTitle className="flex items-center space-x-2">
+                  <DollarSign className="w-5 h-5 text-green-600" />
+                  <span>This Month's Earnings Summary</span>
+                </CardTitle>
+                <CardDescription>Breakdown of your earnings and website commission</CardDescription>
+              </CardHeader>
+              <CardContent>
+                <div className="grid grid-cols-1 md:grid-cols-3 gap-4">
+                  <div className="text-center p-4 bg-white rounded-lg border">
+                    <div className="text-2xl font-bold text-gray-900">LKR{totalRevenue.toLocaleString()}</div>
+                    <div className="text-sm text-gray-600">Total Revenue</div>
+                  </div>
+                  <div className="text-center p-4 bg-white rounded-lg border border-green-200">
+                    <div className="text-2xl font-bold text-green-600">LKR{providerEarnings.toLocaleString()}</div>
+                    <div className="text-sm text-gray-600">Your Earnings (85%)</div>
+                  </div>
+                  <div className="text-center p-4 bg-white rounded-lg border border-blue-200">
+                    <div className="text-2xl font-bold text-blue-600">LKR{commission.toLocaleString()}</div>
+                    <div className="text-sm text-gray-600">Website Commission (15%)</div>
+                  </div>
+                </div>
+              </CardContent>
+            </Card>
+
             <div className="grid grid-cols-1 lg:grid-cols-2 gap-6">
               {/* Recent Bookings */}
               <Card>
@@ -171,7 +214,10 @@ const ProviderDashboard = () => {
                           <Badge variant={booking.status === 'confirmed' ? 'default' : booking.status === 'pending' ? 'secondary' : 'outline'}>
                             {booking.status}
                           </Badge>
-                          <p className="text-sm font-medium mt-1">{booking.amount}</p>
+                          <div className="text-sm mt-1">
+                            <p className="font-medium text-green-600">LKR{booking.yourEarnings}</p>
+                            <p className="text-xs text-gray-500">Total: LKR{booking.totalAmount}</p>
+                          </div>
                         </div>
                       </div>
                     ))}
@@ -288,11 +334,14 @@ const ProviderDashboard = () => {
                           </div>
                         </div>
                       </div>
-                      <div className="text-right space-y-2">
-                        <Badge variant={booking.status === 'confirmed' ? 'default' : booking.status === 'pending' ? 'secondary' : 'outline'}>
-                          {booking.status}
-                        </Badge>
-                        <p className="text-lg font-semibold text-primary-500">{booking.amount}</p>
+                                              <div className="text-right space-y-2">
+                          <Badge variant={booking.status === 'confirmed' ? 'default' : booking.status === 'pending' ? 'secondary' : 'outline'}>
+                            {booking.status}
+                          </Badge>
+                          <div className="text-right">
+                            <p className="text-lg font-semibold text-green-600">LKR{booking.yourEarnings}</p>
+                            <p className="text-sm text-gray-500">Total: LKR{booking.totalAmount}</p>
+                          </div>
                         <div className="space-x-2">
                           {booking.status === 'pending' && (
                             <>
@@ -343,21 +392,90 @@ const ProviderDashboard = () => {
           </TabsContent>
 
           <TabsContent value="analytics">
-            <Card>
-              <CardHeader>
-                <CardTitle>Analytics & Reports</CardTitle>
-                <CardDescription>Track your performance and revenue</CardDescription>
-              </CardHeader>
-              <CardContent>
-                <div className="h-96 bg-gray-100 rounded-lg flex items-center justify-center">
-                  <div className="text-center text-gray-500">
-                    <BarChart3 className="w-12 h-12 mx-auto mb-4 text-primary-500" />
-                    <p className="text-lg font-medium">Analytics Dashboard</p>
-                    <p className="text-sm">View detailed performance metrics</p>
+            <div className="space-y-6">
+              {/* Earnings Breakdown */}
+              <Card>
+                <CardHeader>
+                  <CardTitle>Earnings Breakdown</CardTitle>
+                  <CardDescription>Detailed view of your earnings and commission</CardDescription>
+                </CardHeader>
+                <CardContent>
+                  <div className="grid grid-cols-1 md:grid-cols-3 gap-6">
+                    <div className="text-center p-4 border rounded-lg">
+                      <div className="text-2xl font-bold text-gray-900">LKR{totalRevenue.toLocaleString()}</div>
+                      <div className="text-sm text-gray-600">Total Revenue</div>
+                    </div>
+                    <div className="text-center p-4 border rounded-lg bg-green-50">
+                      <div className="text-2xl font-bold text-green-600">LKR{providerEarnings.toLocaleString()}</div>
+                      <div className="text-sm text-gray-600">Your Earnings (85%)</div>
+                    </div>
+                    <div className="text-center p-4 border rounded-lg bg-blue-50">
+                      <div className="text-2xl font-bold text-blue-600">LKR{commission.toLocaleString()}</div>
+                      <div className="text-sm text-gray-600">Website Commission (15%)</div>
+                    </div>
                   </div>
-                </div>
-              </CardContent>
-            </Card>
+                </CardContent>
+              </Card>
+
+              {/* Commission Details */}
+              <Card>
+                <CardHeader>
+                  <CardTitle>Commission Structure</CardTitle>
+                  <CardDescription>How your earnings are calculated</CardDescription>
+                </CardHeader>
+                <CardContent>
+                  <div className="space-y-4">
+                    <div className="flex items-center justify-between p-3 bg-gray-50 rounded-lg">
+                      <div className="flex items-center space-x-3">
+                        <DollarSign className="w-5 h-5 text-green-500" />
+                        <span className="font-medium">Your Earnings</span>
+                      </div>
+                      <div className="text-right">
+                        <div className="font-bold text-green-600">85%</div>
+                        <div className="text-sm text-gray-600">LKR{providerEarnings.toLocaleString()}</div>
+                      </div>
+                    </div>
+                    <div className="flex items-center justify-between p-3 bg-gray-50 rounded-lg">
+                      <div className="flex items-center space-x-3">
+                        <Percent className="w-5 h-5 text-blue-500" />
+                        <span className="font-medium">Website Commission</span>
+                      </div>
+                      <div className="text-right">
+                        <div className="font-bold text-blue-600">15%</div>
+                        <div className="text-sm text-gray-600">LKR{commission.toLocaleString()}</div>
+                      </div>
+                    </div>
+                    <div className="flex items-center justify-between p-3 bg-gray-50 rounded-lg">
+                      <div className="flex items-center space-x-3">
+                        <TrendingUp className="w-5 h-5 text-gray-500" />
+                        <span className="font-medium">Total Revenue</span>
+                      </div>
+                      <div className="text-right">
+                        <div className="font-bold text-gray-900">100%</div>
+                        <div className="text-sm text-gray-600">LKR{totalRevenue.toLocaleString()}</div>
+                      </div>
+                    </div>
+                  </div>
+                </CardContent>
+              </Card>
+
+              {/* Monthly Breakdown */}
+              <Card>
+                <CardHeader>
+                  <CardTitle>Monthly Earnings Trend</CardTitle>
+                  <CardDescription>Your earnings over the last 6 months</CardDescription>
+                </CardHeader>
+                <CardContent>
+                  <div className="h-64 bg-gray-100 rounded-lg flex items-center justify-center">
+                    <div className="text-center text-gray-500">
+                      <BarChart3 className="w-12 h-12 mx-auto mb-4 text-primary-500" />
+                      <p className="text-lg font-medium">Earnings Chart</p>
+                      <p className="text-sm">Monthly breakdown of your earnings vs commission</p>
+                    </div>
+                  </div>
+                </CardContent>
+              </Card>
+            </div>
           </TabsContent>
         </Tabs>
       </div>
