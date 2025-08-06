@@ -5,7 +5,7 @@ import { Card, CardContent, CardDescription, CardHeader, CardTitle } from "@/com
 import { DropdownMenu, DropdownMenuContent, DropdownMenuCheckboxItem, DropdownMenuLabel, DropdownMenuSeparator, DropdownMenuTrigger } from "@/components/ui/dropdown-menu";
 import { Input } from "@/components/ui/input";
 import { Table, TableBody, TableCell, TableHead, TableHeader, TableRow } from "@/components/ui/table";
-import { BadgeCheck, BadgeX, Eye, ListFilter, Search, DollarSign, Percent } from 'lucide-react';
+import { BadgeCheck, BadgeX, Eye, ListFilter, Search, DollarSign, Percent, BarChart3 } from 'lucide-react';
 import { motion } from 'framer-motion';
 import { useNavigate } from "react-router-dom";
 
@@ -182,21 +182,32 @@ const Providers = () => {
                                 onChange={(e) => setSearchTerm(e.target.value)}
                             />
                         </div>
-                        <DropdownMenu>
-                            <DropdownMenuTrigger asChild>
-                                <Button variant="outline" size="sm" className="h-10 gap-1">
-                                    <ListFilter className="h-3.5 w-3.5" />
-                                    <span className="sr-only sm:not-sr-only sm:whitespace-nowrap">Filter</span>
-                                </Button>
-                            </DropdownMenuTrigger>
-                            <DropdownMenuContent align="end">
-                                <DropdownMenuLabel>Filter by status</DropdownMenuLabel>
-                                <DropdownMenuSeparator />
-                                <DropdownMenuCheckboxItem checked={statusFilters.Approved} onCheckedChange={() => handleStatusChange('Approved')}>Approved</DropdownMenuCheckboxItem>
-                                <DropdownMenuCheckboxItem checked={statusFilters.Pending} onCheckedChange={() => handleStatusChange('Pending')}>Pending</DropdownMenuCheckboxItem>
-                                <DropdownMenuCheckboxItem checked={statusFilters.Rejected} onCheckedChange={() => handleStatusChange('Rejected')}>Rejected</DropdownMenuCheckboxItem>
-                            </DropdownMenuContent>
-                        </DropdownMenu>
+                        <div className="flex items-center gap-2">
+                            <Button 
+                                variant="outline" 
+                                size="sm" 
+                                className="h-10 gap-1"
+                                onClick={() => navigate('/admin/provider-complaints')}
+                            >
+                                <BarChart3 className="h-3.5 w-3.5" />
+                                <span className="sr-only sm:not-sr-only">Complaint Analytics</span>
+                            </Button>
+                            <DropdownMenu>
+                                <DropdownMenuTrigger asChild>
+                                    <Button variant="outline" size="sm" className="h-10 gap-1">
+                                        <ListFilter className="h-3.5 w-3.5" />
+                                        <span className="sr-only sm:not-sr-only sm:whitespace-nowrap">Filter</span>
+                                    </Button>
+                                </DropdownMenuTrigger>
+                                <DropdownMenuContent align="end">
+                                    <DropdownMenuLabel>Filter by status</DropdownMenuLabel>
+                                    <DropdownMenuSeparator />
+                                    <DropdownMenuCheckboxItem checked={statusFilters.Approved} onCheckedChange={() => handleStatusChange('Approved')}>Approved</DropdownMenuCheckboxItem>
+                                    <DropdownMenuCheckboxItem checked={statusFilters.Pending} onCheckedChange={() => handleStatusChange('Pending')}>Pending</DropdownMenuCheckboxItem>
+                                    <DropdownMenuCheckboxItem checked={statusFilters.Rejected} onCheckedChange={() => handleStatusChange('Rejected')}>Rejected</DropdownMenuCheckboxItem>
+                                </DropdownMenuContent>
+                            </DropdownMenu>
+                        </div>
                     </div>
                     <motion.div initial="hidden" animate="visible" variants={{ visible: { transition: { staggerChildren: 0.05 } } }}>
                         <Table>

@@ -14,6 +14,7 @@ import Analytics from './pages/admin/Analytics';
 import Complaints from './pages/admin/Complaints';
 import ComplaintDetail from './pages/admin/ComplaintDetail';
 import ProviderDetail from './pages/admin/ProviderDetail';
+import ProviderComplaints from './pages/admin/ProviderComplaints';
 
 
 const queryClient = new QueryClient();
@@ -35,6 +36,7 @@ const App = () => (
             <Route path="bookings" element={<Bookings />} />
             <Route path="complaints" element={<Complaints />} />
             <Route path="complaints/:id" element={<ComplaintDetail />} />
+            <Route path="provider-complaints" element={<ProviderComplaints />} />
             <Route path="analytics" element={<Analytics />} />
           </Route>
         </Routes>

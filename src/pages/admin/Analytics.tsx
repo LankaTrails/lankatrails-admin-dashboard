@@ -5,6 +5,7 @@ import { DollarSign, Users, ShoppingCart, Activity, Download, FileText, Eye } fr
 import { motion } from 'framer-motion';
 import { BarChart, Bar, LineChart, Line, PieChart, Pie, Cell, XAxis, YAxis, CartesianGrid, Tooltip, Legend, ResponsiveContainer } from 'recharts';
 import jsPDF from 'jspdf';
+import { allComplaints } from "./Complaints";
 
 // Mock data for analytics
 const revenueData = [
@@ -99,7 +100,10 @@ const providerEarningsData = [
     providerEarnings: 8330,
     commissionRate: 15
   }
-];
+].map(provider => ({
+  ...provider,
+  complaintCount: allComplaints.filter(c => c.against === provider.name).length
+}));
 
 // Commission breakdown by service category
 const commissionByServiceData = [
@@ -184,7 +188,8 @@ const Analytics = () => {
         commission: `LKR ${provider.commission.toLocaleString()}`,
         providerEarnings: `LKR ${provider.providerEarnings.toLocaleString()}`,
         commissionRate: `${provider.commissionRate}%`,
-        status: provider.status
+        status: provider.status,
+        complaintCount: provider.complaintCount
       })),
       
       // Commission Summary by Service
@@ -412,7 +417,7 @@ const Analytics = () => {
       yPosition += 6;
       doc.text(`Total Earnings: ${provider.totalEarnings} | Commission (${provider.commissionRate}): ${provider.commission}`, margin + 10, yPosition);
       yPosition += 6;
-      doc.text(`Provider Payout: ${provider.providerEarnings} | Status: ${provider.status}`, margin + 10, yPosition);
+      doc.text(`Provider Payout: ${provider.providerEarnings} | Status: ${provider.status} | Complaints: ${provider.complaintCount}`, margin + 10, yPosition);
       yPosition += 10;
     });
     yPosition += 10;
@@ -572,10 +577,10 @@ const Analytics = () => {
                   <div className="space-y-3">
                     <h4 className="font-semibold text-teal-700">🏆 Top Earning Providers</h4>
                     <ul className="space-y-1 text-gray-700 text-xs">
-                      <li>• Nuwara Eliya Grand Hotel: LKR 21,000</li>
-                      <li>• Colombo Beach Resort: LKR 18,750</li>
-                      <li>• Sigiriya Adventures: LKR 15,600</li>
-                      <li>• Ella Spice Garden: LKR 12,500</li>
+                      <li>• Nuwara Eliya Grand Hotel: LKR 21,000 (Complaints: {providerEarningsData.find(p => p.name === 'Nuwara Eliya Grand Hotel')?.complaintCount ?? 0})</li>
+                      <li>• Colombo Beach Resort: LKR 18,750 (Complaints: {providerEarningsData.find(p => p.name === 'Colombo Beach Resort')?.complaintCount ?? 0})</li>
+                      <li>• Sigiriya Adventures: LKR 15,600 (Complaints: {providerEarningsData.find(p => p.name === 'Sigiriya Adventures')?.complaintCount ?? 0})</li>
+                      <li>• Ella Spice Garden: LKR 12,500 (Complaints: {providerEarningsData.find(p => p.name === 'Ella Spice Garden')?.complaintCount ?? 0})</li>
                     </ul>
                   </div>
                 </div>
