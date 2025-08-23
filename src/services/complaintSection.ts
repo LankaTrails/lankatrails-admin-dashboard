@@ -31,7 +31,7 @@ export async function findComplaintById(id:any): Promise<Complaint> {
     try {
         const response = await api.get(`/admin/complaints/${id}`);
         console.log('Response from find a Complaint By ID:', response.data);
-        return response.data;
+        return response.data.data;
     } catch (error : any) {
         if (error.response && error.response.data) {
             const { code, message, details, userMessage } = error.response.data;
@@ -49,4 +49,29 @@ export async function findComplaintById(id:any): Promise<Complaint> {
         };
     }
     
+}
+
+//update complaint status
+// update complaint status
+export async function updateComplaintStatus(id: string, updateData: any): Promise<void> {
+    try {
+        console.log('Updating complaint status with data:', updateData);
+        const response = await api.put(`/admin/complaints/${id}`, updateData.resolutionStatus);
+        console.log('Response from updating complaint status:', response.data);
+        // No return value since it's void
+    } catch (error: any) {
+        if (error.response && error.response.data) {
+            const { code, message, details, userMessage } = error.response.data;
+            throw {
+                code,
+                message,
+                details,
+                userMessage,
+            };
+        }
+        throw {
+            message: 'Failed to update complaint status',
+            code: 'UNKNOWN_ERROR',
+        };
+    }
 }
