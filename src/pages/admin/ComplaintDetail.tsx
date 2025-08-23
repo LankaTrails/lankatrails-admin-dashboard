@@ -4,20 +4,50 @@ import { Badge } from "@/components/ui/badge";
 import { Button } from "@/components/ui/button";
 import { motion } from "framer-motion";
 import { ArrowLeft, AlertCircle, Calendar, User, FileText, Image as ImageIcon, MessageSquare } from "lucide-react";
-import { allComplaints, Complaint } from "./Complaints";
 import { useState } from "react";
 import { Textarea } from "@/components/ui/textarea";
+import { Complaint } from "@/types/complaints";
+import { useEffect } from "react";
+import { findComplaintById } from "@/services/complaintSection";
+// import { findComplaintById } from "@/services/complaintSection"; // You'll need to create this function
 
 const ComplaintDetail = () => {
   const { id } = useParams();
   const navigate = useNavigate();
   const [reply, setReply] = useState("");
+  const [complaint, setComplaint] = useState<Complaint | null>(null);
+  const [isLoading, setIsLoading] = useState(true);
   const [replies, setReplies] = useState([
     { sender: "Admin", message: "Thank you for your feedback. We are looking into this.", date: "2023-08-16" },
     { sender: "John Doe", message: "Please resolve this as soon as possible.", date: "2023-08-15" },
   ]);
 
-  const complaint: Complaint | undefined = allComplaints.find((c: Complaint) => c.id === id);
+  useEffect(() => {
+    const fetchComplaint = async () => {
+      if (!id) return;
+      
+      try {
+        setIsLoading(true);
+        // You'll need to implement findComplaintById in your complaintSection service
+        const data = await findComplaintById(id);
+        setComplaint(data);
+      } catch (error) {
+        console.error('Error fetching complaint:', error);
+      } finally {
+        setIsLoading(false);
+      }
+    };
+
+    fetchComplaint();
+  }, [id]);
+
+  if (isLoading) {
+    return (
+      <div className="flex flex-col items-center justify-center min-h-[60vh]">
+        <p className="text-muted-foreground">Loading complaint details...</p>
+      </div>
+    );
+  }
 
   if (!complaint) {
     return (
@@ -28,7 +58,8 @@ const ComplaintDetail = () => {
     );
   }
 
-  const images = complaint.images && Array.isArray(complaint.images) ? complaint.images : [];
+  // Use optional chaining and provide fallbacks for potentially undefined properties
+  // const images = complaint.images && Array.isArray(complaint.images) ? complaint.images : [];
 
   const handleSendReply = () => {
     if (reply.trim()) {
@@ -53,14 +84,14 @@ const ComplaintDetail = () => {
           </div>
           <div className="flex-1">
             <h1 className="text-3xl font-bold text-white drop-shadow-lg flex items-center gap-4">
-              {complaint.title}
-              <Badge variant={complaint.status === 'Resolved' ? 'default' : complaint.status === 'In Progress' ? 'secondary' : 'destructive'} className="capitalize text-base px-4 py-2 ml-2 shadow-md">
-                {complaint.status}
-              </Badge>
+              {complaint.businessName || "Unknown Business"}
+              {/* <Badge variant={complaint.complaintStatus === 'Resolved' ? 'default' : complaint.status === 'In Progress' ? 'secondary' : 'destructive'} className="capitalize text-base px-4 py-2 ml-2 shadow-md"> */}
+                {/* {complaint.status} */}
+              {/* </Badge> */}
             </h1>
             <div className="mt-2 text-white/90 text-lg flex items-center gap-2">
               <MessageSquare className="h-5 w-5 mr-1" />
-              {complaint.subject} - <User className="h-5 w-5 mx-1" /> <span className="font-semibold">{complaint.user}</span>
+              {complaint.businessName} - <User className="h-5 w-5 mx-1" /> <span className="font-semibold">{complaint.businessName}</span>
             </div>
           </div>
           <Button variant="ghost" className="text-white border-white border-2 hover:bg-white/10" onClick={() => navigate(-1)}>
@@ -73,20 +104,28 @@ const ComplaintDetail = () => {
         <CardContent className="space-y-8 w-full pt-10">
           {/* Meta Info Bar */}
           <div className="flex flex-wrap gap-6 items-center justify-center bg-primary/5 rounded-lg p-4 border border-primary/10 shadow-inner">
-            <div className="flex items-center gap-2"><FileText className="h-5 w-5 text-primary" /><span className="font-semibold text-gray-700">Booking ID:</span> {complaint.bookingId}</div>
-            <div className="flex items-center gap-2"><Calendar className="h-5 w-5 text-primary" /><span className="font-semibold text-gray-700">Booking Date:</span> {complaint.bookingDate}</div>
-            <div className="flex items-center gap-2"><Calendar className="h-5 w-5 text-primary" /><span className="font-semibold text-gray-700">Service Date:</span> {complaint.serviceDate}</div>
-            <div className="flex items-center gap-2"><User className="h-5 w-5 text-primary" /><span className="font-semibold text-gray-700">Against:</span> {complaint.against}</div>
+            <div className="flex items-center gap-2"><FileText className="h-5 w-5 text-primary" /><span className="font-semibold text-gray-700">Complaint ID:</span> {complaint.complaintId}</div>
+            <div className="flex items-center gap-2"><Calendar className="h-5 w-5 text-primary" /><span className="font-semibold text-gray-700">Date:</span> {complaint.businessName}</div>
+            {complaint.complaintId && (
+              <div className="flex items-center gap-2"><FileText className="h-5 w-5 text-primary" /><span className="font-semibold text-gray-700">Booking ID:</span> {complaint.businessName}</div>
+            )}
+            {complaint.complaintId && (
+              <div className="flex items-center gap-2"><Calendar className="h-5 w-5 text-primary" /><span className="font-semibold text-gray-700">Booking Date:</span> {complaint.businessName}</div>
+            )}
+            {complaint.complaintId && (
+              <div className="flex items-center gap-2"><Calendar className="h-5 w-5 text-primary" /><span className="font-semibold text-gray-700">Service Date:</span> {complaint.businessName}</div>
+            )}
+            <div className="flex items-center gap-2"><User className="h-5 w-5 text-primary" /><span className="font-semibold text-gray-700">Against:</span> {complaint.businessName}</div>
           </div>
           {/* Description */}
           <div>
             <h3 className="text-lg font-semibold mb-2 text-primary-700 flex items-center gap-2"><FileText className="h-5 w-5 text-primary" /> Description</h3>
             <p className="text-gray-700 bg-primary/5 rounded-lg p-6 border-l-4 border-primary/40 border border-primary/10 shadow-inner text-lg">
-              {complaint.description}
+              {complaint.businessName || "No description provided."}
             </p>
           </div>
           {/* Evidence Images */}
-          {images.length > 0 && (
+          {/* {images.length > 0 && (
             <div className="flex flex-col items-center justify-center mt-4 w-full">
               <div className="flex flex-row flex-wrap gap-6 items-center justify-center">
                 {images.map((img: string, idx: number) => (
@@ -103,7 +142,7 @@ const ComplaintDetail = () => {
               </div>
               <span className="text-base text-gray-500 mt-4 flex items-center gap-2"><ImageIcon className="h-5 w-5" /> Image Evidence</span>
             </div>
-          )}
+          )} */}
           {/* Messaging Section (styled like description) */}
           <div className="mt-8">
             <h3 className="text-lg font-semibold mb-2 text-primary-700 flex items-center gap-2"><MessageSquare className="h-5 w-5 text-primary" /> Replies</h3>
@@ -142,4 +181,4 @@ const ComplaintDetail = () => {
   );
 };
 
-export default ComplaintDetail; 
+export default ComplaintDetail;
