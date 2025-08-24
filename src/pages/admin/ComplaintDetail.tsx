@@ -8,7 +8,7 @@ import { useState } from "react";
 import { Textarea } from "@/components/ui/textarea";
 import { Complaint } from "@/types/complaints";
 import { useEffect } from "react";
-import { findComplaintById, updateComplaintStatus } from "@/services/complaintSection"; // Import update function
+import { findComplaintById, updateComplaintStatus, updateComplaintResult } from "@/services/complaintSection";
 import { Checkbox } from "@/components/ui/checkbox";
 import { Label } from "@/components/ui/label";
 import {
@@ -19,12 +19,20 @@ import {
   SelectValue,
 } from "@/components/ui/select";
 import { Input } from "@/components/ui/input";
-import { useToast } from "@/components/ui/use-toast"; // Import toast for notifications
+import { useToast } from "@/components/ui/use-toast";
+
+// Define the ComplaintResult type based on your backend expectations
+interface ComplaintResult {
+  faultType: "PROVIDER" | "APP" | "REJECT";
+  notes?: string;
+  refundAmount?: number;
+  refundReason?: string;
+}
 
 const ComplaintDetail = () => {
   const { id } = useParams();
   const navigate = useNavigate();
-  const { toast } = useToast(); // Initialize toast
+  const { toast } = useToast();
   const [reply, setReply] = useState("");
   const [complaint, setComplaint] = useState<Complaint | null>(null);
   const [isLoading, setIsLoading] = useState(true);
@@ -35,12 +43,12 @@ const ComplaintDetail = () => {
   const [resolutionStatus, setResolutionStatus] = useState({
     inProgress: false,
     notes: "",
-    faultType: "" as "provider" | "app" | "reject" |""
+    faultType: "" as "PROVIDER" | "APP" | "REJECT" | ""
   });
   const [savedResolutionStatus, setSavedResolutionStatus] = useState({
     inProgress: false,
     notes: "",
-    faultType: "" as "provider" | "app" | "reject" |""
+    faultType: "" as "PROVIDER" | "APP" | "REJECT" | ""
   });
   const [detailsLoaded, setDetailsLoaded] = useState(false);
   const [resolutionSaved, setResolutionSaved] = useState(false);
@@ -49,9 +57,9 @@ const ComplaintDetail = () => {
   const [refundReason, setRefundReason] = useState("");
   const [refundProcessed, setRefundProcessed] = useState(false);
   const [selectedImage, setSelectedImage] = useState<string | null>(null);
-  const [isSaving, setIsSaving] = useState(false); // Loading state for save operation
+  const [isSaving, setIsSaving] = useState(false);
+  const [isSavingFault, setIsSavingFault] = useState(false);
 
-  // Sample complaint images (in a real app, these would come from the complaint data)
   const complaintImages = [
     "https://images.unsplash.com/photo-1551963831-b3b1ca40c98e",
     "https://images.unsplash.com/photo-1551782450-a2132b4ba21d",
@@ -67,20 +75,17 @@ const ComplaintDetail = () => {
         console.log("Fetched complaint:", data);
         
         // If complaint already has resolution status, set it
-        // if (data.complaintStatus) {
-        //   setResolutionStatus({
-        //     inProgress: data.complaintStatus.inProgress || false,
-        //     notes: data.complaintStatus.notes || "",
-        //     faultType: data.resolutionStatus.faultType || ""
-        //   });
-        //   setSavedResolutionStatus({
-        //     inProgress: data.resolutionStatus.inProgress || false,
-        //     notes: data.resolutionStatus.notes || "",
-        //     faultType: data.resolutionStatus.faultType || ""
-        //   });
-        //   setResolutionSaved(data.resolutionStatus.inProgress || false);
-        //   setDetailsLoaded(data.resolutionStatus.inProgress || false);
-        // }
+        if (data.faultType) {
+          setResolutionStatus(prev => ({
+            ...prev,
+            faultType: data.faultType as "PROVIDER" | "APP" | "REJECT"
+          }));
+          setSavedResolutionStatus(prev => ({
+            ...prev,
+            faultType: data.faultType as "PROVIDER" | "APP" | "REJECT"
+          }));
+          setFaultClassificationSaved(true);
+        }
       } catch (error) {
         console.error('Error fetching complaint:', error);
         toast({
@@ -114,7 +119,6 @@ const ComplaintDetail = () => {
       faultType: inProgress ? prev.faultType : ""
     }));
     
-    // Hide details when checkbox is unchecked
     if (!inProgress) {
       setDetailsLoaded(false);
       setSavedResolutionStatus(prev => ({
@@ -128,7 +132,7 @@ const ComplaintDetail = () => {
     }
   };
 
-  const handleFaultTypeChange = (value: "provider" | "app") => {
+  const handleFaultTypeChange = (value: "PROVIDER" | "APP" | "REJECT") => {
     setResolutionStatus(prev => ({
       ...prev,
       faultType: value
@@ -140,30 +144,21 @@ const ComplaintDetail = () => {
     
     setIsSaving(true);
     try {
-      // Prepare the data to update
       const updateData = {
         resolutionStatus: {
-          // inProgress: resolutionStatus.inProgress,
-          // notes: resolutionStatus.notes,
-          // faultType: resolutionStatus.faultType,
           investigationStartedDate: new Date().toISOString()
         }
       };
 
-      // Call the API to update the complaint status
       const updatedComplaint = await updateComplaintStatus(complaint.complaintId, updateData);
       
-      // Update the saved resolution status
       setSavedResolutionStatus({
         inProgress: resolutionStatus.inProgress,
         notes: resolutionStatus.notes,
         faultType: resolutionStatus.faultType
       });
       
-      // Mark resolution as saved
       setResolutionSaved(true);
-      
-      // Load the rest of the complaint details
       setDetailsLoaded(true);
       
       toast({
@@ -183,26 +178,58 @@ const ComplaintDetail = () => {
     }
   };
 
-  const handleSaveFaultClassification = () => {
-    if (!resolutionStatus.faultType) {
-      alert("Please select a fault type.");
+  const handleSaveFaultClassification = async () => {
+    if (!complaint || !resolutionStatus.faultType) {
+      toast({
+        title: "Error",
+        description: "Please select a fault type.",
+        variant: "destructive",
+      });
       return;
     }
     
-    // Here you would typically make an API call to update the fault classification
-    console.log("Saving fault classification:", resolutionStatus.faultType);
-    // Add your API call here to update the fault classification
-    
-    // Update the saved resolution status with the fault type
-    setSavedResolutionStatus(prev => ({
-      ...prev,
-      faultType: resolutionStatus.faultType
-    }));
-    
-    // Mark fault classification as saved
-    setFaultClassificationSaved(true);
-    
-    alert(`Fault classification saved: ${resolutionStatus.faultType === 'provider' ? 'Provider Fault' : 'App Fault'}`);
+    setIsSavingFault(true);
+    try {
+      // Prepare the complaint result data in the format expected by backend
+      const complaintResult: ComplaintResult = {
+        faultType: resolutionStatus.faultType,
+        notes: resolutionStatus.notes,
+      };
+      
+      // Add refund details if applicable and not rejected
+      if (resolutionStatus.faultType !== "REJECT" && refundAmount && refundReason) {
+        complaintResult.refundAmount = parseFloat(refundAmount);
+        complaintResult.refundReason = refundReason;
+      }
+      
+      // Call the API to update the complaint result
+      console.log("Saving complaint result:", complaint);
+      const updatedComplaint = await updateComplaintResult(complaint.complaintId, complaintResult);
+      console.log("Updated complaint result:", updatedComplaint);
+      // Update the saved resolution status with the fault type
+      setSavedResolutionStatus(prev => ({
+        ...prev,
+        faultType: resolutionStatus.faultType
+      }));
+      
+      // Mark fault classification as saved
+      setFaultClassificationSaved(true);
+      
+      toast({
+        title: "Success",
+        description: `Fault classification saved: ${resolutionStatus.faultType === 'PROVIDER' ? 'Provider Fault' : resolutionStatus.faultType === 'APP' ? 'App Fault' : 'Reject Complaint'}`,
+      });
+      
+    } catch (error) {
+      console.error('Error saving fault classification:', error);
+      toast({
+        title: "Error",
+        description: "Failed to save fault classification",
+        variant: "destructive",
+      });
+    } finally {
+      setIsSavingFault(false);
+    }
   };
 
   const handleProcessRefund = () => {
@@ -213,7 +240,6 @@ const ComplaintDetail = () => {
     
     // Here you would typically make an API call to process the refund
     console.log("Processing refund:", { amount: refundAmount, reason: refundReason });
-    // Add your API call here to process the refund
     
     setRefundProcessed(true);
     alert(`Refund of $${refundAmount} processed successfully.`);
@@ -273,7 +299,7 @@ const ComplaintDetail = () => {
               </Badge>
               {savedResolutionStatus.faultType && (
                 <Badge variant="outline" className="capitalize text-base px-4 py-2 ml-2 shadow-md bg-white text-primary">
-                  Fault: {savedResolutionStatus.faultType === 'provider' ? 'Provider' : 'App'}
+                  Fault: {savedResolutionStatus.faultType === 'PROVIDER' ? 'Provider' : savedResolutionStatus.faultType === 'APP' ? 'App' : 'Rejected'}
                 </Badge>
               )}
             </h1>
@@ -406,16 +432,16 @@ const ComplaintDetail = () => {
                     <Label htmlFor="faultType" className="block mb-2 font-medium text-gray-700">Fault Type</Label>
                     <Select 
                       value={resolutionStatus.faultType} 
-                      onValueChange={(value: "provider" | "app" | "reject") => !faultClassificationSaved && handleFaultTypeChange(value)}
+                      onValueChange={(value: "PROVIDER" | "APP" | "REJECT") => !faultClassificationSaved && handleFaultTypeChange(value)}
                       disabled={faultClassificationSaved}
                     >
                       <SelectTrigger className="w-full">
                         <SelectValue placeholder="Select fault type" />
                       </SelectTrigger>
                       <SelectContent>
-                        <SelectItem value="provider">Provider Fault</SelectItem>
-                        <SelectItem value="app">App Fault</SelectItem>
-                        <SelectItem value="reject">Reject Complaint</SelectItem>
+                        <SelectItem value="PROVIDER">Provider Fault</SelectItem>
+                        <SelectItem value="APP">App Fault</SelectItem>
+                        <SelectItem value="REJECT">Reject Complaint</SelectItem>
                       </SelectContent>
                     </Select>
                   </div>
@@ -424,23 +450,23 @@ const ComplaintDetail = () => {
                     <Button 
                       onClick={handleSaveFaultClassification} 
                       className="mt-4 bg-blue-600 hover:bg-blue-700"
-                      disabled={!resolutionStatus.faultType}
+                      disabled={!resolutionStatus.faultType || isSavingFault}
                     >
-                      Save Fault Classification
+                      {isSavingFault ? "Saving..." : "Save Fault Classification"}
                     </Button>
                   )}
 
                   {faultClassificationSaved && (
                     <div className="mt-4 p-3 bg-green-100 text-green-800 rounded-md border border-green-200">
                       <CheckCircle className="h-5 w-5 inline mr-2" />
-                      Fault classification saved: {resolutionStatus.faultType === 'provider' ? 'Provider Fault' : 'App Fault'}
+                      Fault classification saved: {resolutionStatus.faultType === 'PROVIDER' ? 'Provider Fault' : resolutionStatus.faultType === 'APP' ? 'App Fault' : 'Reject Complaint'}
                     </div>
                   )}
                 </div>
               </div>
 
-              {/* Refund Section - Only shown after fault classification is saved */}
-              {faultClassificationSaved && (
+              {/* Refund Section - Only shown after fault classification is saved and NOT "REJECT" */}
+              {faultClassificationSaved && resolutionStatus.faultType !== "REJECT" && (
                 <div className="bg-green-50 rounded-lg p-6 border-2 border-green-200 shadow-inner">
                   <h3 className="text-lg font-semibold mb-4 text-green-800 flex items-center gap-2">
                     <DollarSign className="h-5 w-5 text-green-600" /> 

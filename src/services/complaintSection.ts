@@ -75,3 +75,27 @@ export async function updateComplaintStatus(id: string, updateData: any): Promis
         };
     }
 }
+
+// update complaint result
+export async function updateComplaintResult(id: string, complaintResult: any): Promise<void> {
+    try {
+        console.log('Updating complaint result with data:',complaintResult);
+        const response = await api.put(`/admin/complaint-result/${id}`, complaintResult);
+        console.log('Response from updating complaint status:', response.data);
+        // No return value since it's void
+    } catch (error: any) {
+        if (error.response && error.response.data) {
+            const { code, message, details, userMessage } = error.response.data;
+            throw {
+                code,
+                message,
+                details,
+                userMessage,
+            };
+        }
+        throw {
+            message: 'Failed to update complaint status',
+            code: 'UNKNOWN_ERROR',
+        };
+    }
+}

@@ -17,5 +17,5 @@ export interface Complaint {
     description: string;
     bookingId : string;
     investigationStartedDate : string;
-    faultType: FaultType;
+    faultType: String;
 }
