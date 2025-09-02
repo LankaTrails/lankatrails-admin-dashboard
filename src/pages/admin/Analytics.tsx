@@ -633,28 +633,38 @@ const Analytics = () => {
 
       <motion.div className="grid gap-6" variants={containerVariants} initial="hidden" animate="visible">
       <div className="grid gap-6 md:grid-cols-2 lg:grid-cols-4">
-        {kpiData.map((kpi, index) => (
-          <motion.div key={index} variants={itemVariants}>
-            <Card className="hover:shadow-lg transition-shadow">
-              <CardHeader className="flex flex-row items-center justify-between space-y-0 pb-2">
-                <CardTitle className="text-sm font-medium">{kpi.title}</CardTitle>
-                <kpi.icon className="h-4 w-4 text-muted-foreground" />
-              </CardHeader>
-              <CardContent>
-                <div className="text-2xl font-bold">{kpi.value}</div>
-                <p className={`text-xs ${kpi.changeType === 'increase' ? 'text-green-500' : 'text-red-500'}`}>{kpi.change} vs last month</p>
-              </CardContent>
-            </Card>
-          </motion.div>
-        ))}
+        {kpiData.map((kpi, index) => {
+          const cardColors = [
+            { bg: 'bg-gradient-to-br from-emerald-500 to-teal-600', text: 'text-white', icon: 'text-white' },
+            { bg: 'bg-gradient-to-br from-blue-500 to-indigo-600', text: 'text-white', icon: 'text-white' },
+            { bg: 'bg-gradient-to-br from-purple-500 to-pink-600', text: 'text-white', icon: 'text-white' },
+            { bg: 'bg-gradient-to-br from-orange-500 to-red-600', text: 'text-white', icon: 'text-white' }
+          ];
+          const colors = cardColors[index];
+          
+          return (
+            <motion.div key={index} variants={itemVariants}>
+              <Card className={`hover:shadow-lg transition-shadow ${colors.bg} ${colors.text}`}>
+                <CardHeader className="flex flex-row items-center justify-between space-y-0 pb-2">
+                  <CardTitle className="text-sm font-medium">{kpi.title}</CardTitle>
+                  <kpi.icon className={`h-4 w-4 ${colors.icon}`} />
+                </CardHeader>
+                <CardContent>
+                  <div className="text-2xl font-bold">{kpi.value}</div>
+                  <p className={`text-xs ${kpi.changeType === 'increase' ? 'text-white/80' : 'text-white/80'}`}>{kpi.change} vs last month</p>
+                </CardContent>
+              </Card>
+            </motion.div>
+          );
+        })}
       </div>
 
       <motion.div className="grid gap-6 lg:grid-cols-2" variants={containerVariants}>
         <motion.div variants={itemVariants}>
-          <Card className="hover:shadow-lg transition-shadow">
+          <Card className="bg-gradient-to-br from-emerald-50 to-teal-50 border-emerald-200 hover:shadow-lg transition-shadow">
             <CardHeader>
-              <CardTitle>Commission Earnings Trend</CardTitle>
-              <CardDescription>Monthly commission earnings over the last 8 months.</CardDescription>
+              <CardTitle className="text-emerald-800">Commission Earnings Trend</CardTitle>
+              <CardDescription className="text-emerald-600">Monthly commission earnings over the last 8 months.</CardDescription>
             </CardHeader>
             <CardContent className="h-80">
               <ResponsiveContainer width="100%" height="100%">
@@ -671,10 +681,10 @@ const Analytics = () => {
           </Card>
         </motion.div>
         <motion.div variants={itemVariants}>
-          <Card className="hover:shadow-lg transition-shadow">
+          <Card className="bg-gradient-to-br from-blue-50 to-indigo-50 border-blue-200 hover:shadow-lg transition-shadow">
             <CardHeader>
-              <CardTitle>Bookings by Category</CardTitle>
-              <CardDescription>Distribution of bookings across service categories.</CardDescription>
+              <CardTitle className="text-blue-800">Bookings by Category</CardTitle>
+              <CardDescription className="text-blue-600">Distribution of bookings across service categories.</CardDescription>
             </CardHeader>
             <CardContent className="h-80">
               <ResponsiveContainer width="100%" height="100%">
@@ -692,10 +702,10 @@ const Analytics = () => {
       </motion.div>
 
       <motion.div variants={itemVariants}>
-        <Card className="hover:shadow-lg transition-shadow">
+        <Card className="bg-gradient-to-br from-purple-50 to-pink-50 border-purple-200 hover:shadow-lg transition-shadow">
           <CardHeader>
-            <CardTitle>Provider Geographic Distribution</CardTitle>
-            <CardDescription>Provider concentration by province.</CardDescription>
+            <CardTitle className="text-purple-800">Provider Geographic Distribution</CardTitle>
+            <CardDescription className="text-purple-600">Provider concentration by province.</CardDescription>
           </CardHeader>
           <CardContent className="h-80 flex items-center justify-center">
             <ResponsiveContainer width="100%" height="100%">

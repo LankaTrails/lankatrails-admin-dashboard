@@ -157,46 +157,46 @@ const ProviderComplaints = () => {
     <motion.div initial="hidden" animate="visible" variants={{ visible: { transition: { staggerChildren: 0.1 } } }}>
       {/* Complaints Summary Cards */}
       <div className="grid gap-4 md:grid-cols-4 mb-6">
-        <Card>
+        <Card className="bg-gradient-to-br from-red-500 to-pink-600 text-white hover:shadow-lg transition-shadow">
           <CardContent className="p-6">
             <div className="flex items-center space-x-3">
-              <AlertTriangle className="w-8 h-8 text-red-600" />
+              <AlertTriangle className="w-8 h-8 text-white" />
               <div>
-                <p className="text-sm text-gray-600">Total Complaints</p>
-                <p className="text-2xl font-bold text-red-600">{totalComplaints}</p>
+                <p className="text-sm text-white/90">Total Complaints</p>
+                <p className="text-2xl font-bold text-white">{totalComplaints}</p>
               </div>
             </div>
           </CardContent>
         </Card>
-        <Card>
+        <Card className="bg-gradient-to-br from-blue-500 to-cyan-600 text-white hover:shadow-lg transition-shadow">
           <CardContent className="p-6">
             <div className="flex items-center space-x-3">
-              <BarChart3 className="w-8 h-8 text-blue-600" />
+              <BarChart3 className="w-8 h-8 text-white" />
               <div>
-                <p className="text-sm text-gray-600">Avg. Rate/Month</p>
-                <p className="text-2xl font-bold text-blue-600">{avgComplaintRate.toFixed(1)}</p>
+                <p className="text-sm text-white/90">Avg. Rate/Month</p>
+                <p className="text-2xl font-bold text-white">{avgComplaintRate.toFixed(1)}</p>
               </div>
             </div>
           </CardContent>
         </Card>
-        <Card>
+        <Card className="bg-gradient-to-br from-orange-500 to-amber-600 text-white hover:shadow-lg transition-shadow">
           <CardContent className="p-6">
             <div className="flex items-center space-x-3">
-              <TrendingUp className="w-8 h-8 text-orange-600" />
+              <TrendingUp className="w-8 h-8 text-white" />
               <div>
-                <p className="text-sm text-gray-600">Providers with Issues</p>
-                <p className="text-2xl font-bold text-orange-600">{providersWithComplaints}</p>
+                <p className="text-sm text-white/90">Providers with Issues</p>
+                <p className="text-2xl font-bold text-white">{providersWithComplaints}</p>
               </div>
             </div>
           </CardContent>
         </Card>
-        <Card>
+        <Card className="bg-gradient-to-br from-green-500 to-emerald-600 text-white hover:shadow-lg transition-shadow">
           <CardContent className="p-6">
             <div className="flex items-center space-x-3">
-              <TrendingDown className="w-8 h-8 text-green-600" />
+              <TrendingDown className="w-8 h-8 text-white" />
               <div>
-                <p className="text-sm text-gray-600">Total Providers</p>
-                <p className="text-2xl font-bold text-green-600">{providerStats.length}</p>
+                <p className="text-sm text-white/90">Total Providers</p>
+                <p className="text-2xl font-bold text-white">{providerStats.length}</p>
               </div>
             </div>
           </CardContent>

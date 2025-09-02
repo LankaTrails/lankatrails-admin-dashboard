@@ -39,33 +39,33 @@ const Dashboard = () => {
     <>
       <motion.div className="grid gap-4 md:grid-cols-2 md:gap-8 lg:grid-cols-4" variants={containerVariants} initial="hidden" animate="visible">
         <motion.div variants={itemVariants}>
-          <Card className="hover:shadow-lg transition-shadow">
+          <Card className="hover:shadow-lg transition-shadow bg-[#6a9af0] text-white">
             <CardHeader className="flex flex-row items-center justify-between space-y-0 pb-2">
               <CardTitle className="text-sm font-medium">Commission Earnings</CardTitle>
-              <span className="text-blue-500">LKR</span>
+              <span className="text-white">LKR</span>
             </CardHeader>
             <CardContent>
               <div className="text-2xl font-bold">LKR6,784.78</div>
-              <p className="text-xs text-muted-foreground">+20.1% from last month</p>
+              <p className="text-xs text-white/80">+20.1% from last month</p>
             </CardContent>
           </Card>
         </motion.div>
         <motion.div variants={itemVariants}>
-          <Card className="hover:shadow-lg transition-shadow">
+          <Card className="hover:shadow-lg transition-shadow bg-[#f2af52] text-white">
             <CardHeader className="flex flex-row items-center justify-between space-y-0 pb-2">
               <CardTitle className="text-sm font-medium">New Bookings</CardTitle>
-              <ShoppingCart className="h-4 w-4 text-muted-foreground" />
+              <ShoppingCart className="h-4 w-4 text-white" />
             </CardHeader>
             <CardContent>
               <div className="text-2xl font-bold">+1,234</div>
-              <p className="text-xs text-muted-foreground">+19% from last month</p>
+              <p className="text-xs text-white/80">+19% from last month</p>
             </CardContent>
           </Card>
         </motion.div>
         <motion.div variants={itemVariants} className="lg:col-span-2">
-          <Card className="hover:shadow-lg transition-shadow h-full">
+          <Card className="bg-gradient-to-br from-green-50 to-emerald-50 border-green-200 hover:shadow-lg transition-shadow h-full">
             <CardHeader>
-              <CardTitle className="text-sm font-medium">Monthly Signups</CardTitle>
+              <CardTitle className="text-sm font-medium text-green-800">Monthly Signups</CardTitle>
             </CardHeader>
             <CardContent className="h-40">
               <ResponsiveContainer width="100%" height="100%">
@@ -83,10 +83,10 @@ const Dashboard = () => {
       </motion.div>
       <motion.div className="grid gap-4 md:grid-cols-2 lg:grid-cols-7" variants={containerVariants} initial="hidden" animate="visible">
         <motion.div variants={itemVariants} className="lg:col-span-4">
-          <Card className="hover:shadow-lg transition-shadow h-full">
+          <Card className="bg-gradient-to-br from-blue-50 to-indigo-50 border-blue-200 hover:shadow-lg transition-shadow h-full">
             <CardHeader>
-              <CardTitle>Recent Provider Registrations</CardTitle>
-              <CardDescription>Manage provider accounts and view their status.</CardDescription>
+              <CardTitle className="text-blue-800">Recent Provider Registrations</CardTitle>
+              <CardDescription className="text-blue-600">Manage provider accounts and view their status.</CardDescription>
             </CardHeader>
             <CardContent>
               <Table>
@@ -124,10 +124,10 @@ const Dashboard = () => {
           </Card>
         </motion.div>
         <motion.div variants={itemVariants} className="lg:col-span-3">
-          <Card className="hover:shadow-lg transition-shadow h-full">
+          <Card className="bg-gradient-to-br from-purple-50 to-pink-50 border-purple-200 hover:shadow-lg transition-shadow h-full">
             <CardHeader>
-              <CardTitle>Provider Status Overview</CardTitle>
-              <CardDescription>Distribution of provider account statuses.</CardDescription>
+              <CardTitle className="text-purple-800">Provider Status Overview</CardTitle>
+              <CardDescription className="text-purple-600">Distribution of provider account statuses.</CardDescription>
             </CardHeader>
             <CardContent className="h-[300px]">
               <ResponsiveContainer width="100%" height="100%">

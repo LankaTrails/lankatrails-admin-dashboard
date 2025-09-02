@@ -124,39 +124,39 @@ const Providers = () => {
         <motion.div initial="hidden" animate="visible" variants={{ visible: { transition: { staggerChildren: 0.1 } } }}>
             {/* Summary Cards */}
             <div className="grid gap-4 md:grid-cols-3 mb-6">
-                <Card>
+                <Card className="bg-[#51af87] text-white hover:shadow-lg transition-shadow">
                     <CardContent className="p-6">
                         <div className="flex items-center space-x-3">
-                            <DollarSign className="w-8 h-8 text-green-600" />
+                            <DollarSign className="w-8 h-8 text-white" />
                             <div>
-                                <p className="text-sm text-gray-600">Total Provider Earnings</p>
-                                <p className="text-2xl font-bold text-green-600">
+                                <p className="text-sm text-white/90">Total Provider Earnings</p>
+                                <p className="text-2xl font-bold text-white">
                                     LKR{filteredProviders.reduce((sum, p) => sum + p.providerEarnings, 0).toLocaleString()}
                                 </p>
                             </div>
                         </div>
                     </CardContent>
                 </Card>
-                <Card>
+                <Card className="bg-[#6a9af0] text-white hover:shadow-lg transition-shadow">
                     <CardContent className="p-6">
                         <div className="flex items-center space-x-3">
-                            <Percent className="w-8 h-8 text-blue-600" />
+                            <Percent className="w-8 h-8 text-white" />
                             <div>
-                                <p className="text-sm text-gray-600">Total Commission</p>
-                                <p className="text-2xl font-bold text-blue-600">
+                                <p className="text-sm text-white/90">Total Commission</p>
+                                <p className="text-2xl font-bold text-white">
                                     LKR{filteredProviders.reduce((sum, p) => sum + p.commission, 0).toLocaleString()}
                                 </p>
                             </div>
                         </div>
                     </CardContent>
                 </Card>
-                <Card>
+                <Card className="bg-[#a554ef] text-white hover:shadow-lg transition-shadow">
                     <CardContent className="p-6">
                         <div className="flex items-center space-x-3">
-                            <DollarSign className="w-8 h-8 text-gray-600" />
+                            <DollarSign className="w-8 h-8 text-white" />
                             <div>
-                                <p className="text-sm text-gray-600">Total Revenue</p>
-                                <p className="text-2xl font-bold text-gray-900">
+                                <p className="text-sm text-white/90">Total Revenue</p>
+                                <p className="text-2xl font-bold text-white">
                                     LKR{filteredProviders.reduce((sum, p) => sum + p.totalEarnings, 0).toLocaleString()}
                                 </p>
                             </div>
