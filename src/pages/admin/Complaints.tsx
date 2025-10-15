@@ -13,16 +13,19 @@ import { Complaint } from '@/types/complaints';
 
 const getStatusVariant = (status: string) => {
   switch (status) {
-    case 'Resolved': return { variant: 'default', icon: CheckCircle, color: 'bg-green-600 hover:bg-green-600/80' };
-    case 'In Progress': return { variant: 'secondary', icon: Clock, color: '' };
-    case 'Open': return { variant: 'destructive', icon: XCircle, color: '' };
+    case 'RESOLVED': return { variant: 'default', icon: CheckCircle, color: 'bg-green-600 hover:bg-green-600/80' };
+    case 'IN_PROGRESS': return { variant: 'secondary', icon: Clock, color: '' };
+    case 'PENDING': return { variant: 'destructive', icon: XCircle, color: '' };
     default: return { variant: 'outline', icon: Clock, color: '' };
   }
 };
 
 const Complaints = () => {
     const [searchTerm, setSearchTerm] = useState('');
-    const [statusFilters, setStatusFilters] = useState({ Open: true, 'In Progress': true, Resolved: true });
+    const [statusFilters, setStatusFilters] = useState({ 
+      PENDING: true, 
+      IN_PROGRESS: true
+    });
     const [complaints, setComplaints] = useState<Complaint[]>([]);
     const [isLoading, setIsLoading] = useState(true);
     const navigate = useNavigate();
@@ -31,13 +34,16 @@ const Complaints = () => {
         setStatusFilters(prev => ({ ...prev, [status]: !prev[status] }));
     };
 
+    // Filter to show only PENDING and IN_PROGRESS complaints
     const filteredComplaints = Array.isArray(complaints) ? complaints
+        .filter(c => c.complaintStatus === 'PENDING' || c.complaintStatus === 'IN_PROGRESS')
         .filter(c => statusFilters[c.complaintStatus as keyof typeof statusFilters])
         .filter(c =>
-            c.complaintId?.toLowerCase().includes(searchTerm.toLowerCase()) ||
+            c.complaintId?.toString().toLowerCase().includes(searchTerm.toLowerCase()) ||
             c.touristEmail?.toLowerCase().includes(searchTerm.toLowerCase()) ||
-            c.businessName?.toLowerCase().includes(searchTerm.toLowerCase()) ||
-            c.complaintStatus?.toLowerCase().includes(searchTerm.toLowerCase())
+            c.serviceName?.toLowerCase().includes(searchTerm.toLowerCase()) ||
+            c.complaintStatus?.toLowerCase().includes(searchTerm.toLowerCase()) ||
+            c.businessType?.toLowerCase().includes(searchTerm.toLowerCase())
         ) : [];
 
     const itemVariants = { hidden: { y: 20, opacity: 0 }, visible: { y: 0, opacity: 1, transition: { duration: 0.5 } } };
@@ -46,23 +52,9 @@ const Complaints = () => {
         const fetchAllComplaints = async () => {
             try {
                 setIsLoading(true);
-                const data = await findAllComplaints();
-                console.log("Complaints : ", data);
-                setComplaints(data);
-                // Handle different response structures
-                // if (Array.isArray(data)) {
-                //     setComplaints(data);
-                // } else if (data && Array.isArray(data)) {
-                //     setComplaints(data.complaints);
-                // } 
-                // else if (data && Array.isArray(data.data)) {
-                //     setComplaints(data.data);
-                // } else if (data && Array.isArray(data.items)) {
-                //     setComplaints(data.items);
-                // } else {
-                //     console.error('Unexpected API response structure:', data);
-                //     setComplaints([]);
-                // }
+                const response = await findAllComplaints();
+                console.log("Complaints response: ", response.data.content);
+                setComplaints(response.data.content);
             } catch (error) {
                 console.error('Error fetching complaints:', error);
                 setComplaints([]);
@@ -110,16 +102,15 @@ const Complaints = () => {
                             <DropdownMenuContent align="end">
                                 <DropdownMenuLabel>Filter by status</DropdownMenuLabel>
                                 <DropdownMenuSeparator />
-                                <DropdownMenuCheckboxItem checked={statusFilters.Open} onCheckedChange={() => handleStatusChange('Open')}>Open</DropdownMenuCheckboxItem>
-                                <DropdownMenuCheckboxItem checked={statusFilters['In Progress']} onCheckedChange={() => handleStatusChange('In Progress')}>In Progress</DropdownMenuCheckboxItem>
-                                <DropdownMenuCheckboxItem checked={statusFilters.Resolved} onCheckedChange={() => handleStatusChange('Resolved')}>Resolved</DropdownMenuCheckboxItem>
+                                <DropdownMenuCheckboxItem checked={statusFilters.PENDING} onCheckedChange={() => handleStatusChange('PENDING')}>Pending</DropdownMenuCheckboxItem>
+                                <DropdownMenuCheckboxItem checked={statusFilters.IN_PROGRESS} onCheckedChange={() => handleStatusChange('IN_PROGRESS')}>In Progress</DropdownMenuCheckboxItem>
                             </DropdownMenuContent>
                         </DropdownMenu>
                     </div>
                     <motion.div initial="hidden" animate="visible" variants={{ visible: { transition: { staggerChildren: 0.05 } } }}>
                         {filteredComplaints.length === 0 ? (
                             <div className="text-center py-12">
-                                <p className="text-muted-foreground text-lg">No pending or unattended complaints</p>
+                                <p className="text-muted-foreground text-lg">No pending or in-progress complaints</p>
                             </div>
                         ) : (
                             <Table>
@@ -128,7 +119,6 @@ const Complaints = () => {
                                         <TableHead>Complaint ID</TableHead>
                                         <TableHead>User Email</TableHead>
                                         <TableHead>Business</TableHead>
-                                        <TableHead className="hidden md:table-cell">Status</TableHead>
                                         <TableHead className="hidden lg:table-cell">Business Type</TableHead>
                                         <TableHead>Status</TableHead>
                                         <TableHead className="text-right">Actions</TableHead>
@@ -141,13 +131,12 @@ const Complaints = () => {
                                             <motion.tr key={complaint.complaintId} variants={itemVariants} className="hover:bg-muted/50 transition-colors">
                                                 <TableCell className="font-medium">{complaint.complaintId}</TableCell>
                                                 <TableCell>{complaint.touristEmail}</TableCell>
-                                                <TableCell>{complaint.businessName}</TableCell>
-                                                <TableCell className="hidden md:table-cell">{complaint.complaintStatus}</TableCell>
+                                                <TableCell>{complaint.serviceName}</TableCell>
                                                 <TableCell className="hidden lg:table-cell">{complaint.businessType}</TableCell>
                                                 <TableCell>
                                                     <Badge variant={statusInfo.variant as any} className={`capitalize ${statusInfo.color}`}>
                                                         <statusInfo.icon className="mr-1 h-3 w-3" />
-                                                        {complaint.complaintStatus}
+                                                        {complaint.complaintStatus === 'IN_PROGRESS' ? 'In Progress' : complaint.complaintStatus}
                                                     </Badge>
                                                 </TableCell>
                                                 <TableCell className="text-right">
