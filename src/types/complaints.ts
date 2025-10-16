@@ -12,6 +12,7 @@ export interface Complaint {
     touristEmail : string;
     userStatus : UserStatus;
     complaintStatus : ComplaintStatus;
+    complaintResult:string;
     complaintId : string;
     complaintDateTime : string;
     description: string;
