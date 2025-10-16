@@ -4,9 +4,9 @@ import { Complaint } from "@/types/complaints";
 //load all the complaints (basic details)
 export async function findAllComplaints(): Promise<Complaint[]> {
     try {
-        const response = await api.get('/admin/complaints');
-        console.log('Response from getAllComplaints:', response.data);
-        return response.data;
+        const response = await api.get(`/admin/complaints`);
+        console.log('Response from getAllComplaints:', response.data.data);
+        return response.data.data.content;
     } catch (error : any) {
         if (error.response && error.response.data) {
             const { code, message, details, userMessage } = error.response.data;
