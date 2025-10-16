@@ -91,7 +91,7 @@ const Bookings = () => {
                                     <TableHead className="hidden md:table-cell">Provider</TableHead>
                                     <TableHead className="hidden lg:table-cell">Date</TableHead>
                                     <TableHead>Status</TableHead>
-                                    <TableHead className="text-right">Actions</TableHead>
+                                    <TableHead className="text-right">Amount</TableHead>
                                 </TableRow>
                             </TableHeader>
                             <TableBody>

@@ -4,9 +4,9 @@ import { Complaint } from "@/types/complaints";
 //load all the complaints (basic details)
 export async function findAllComplaints(): Promise<Complaint[]> {
     try {
-        const response = await api.get('/admin/complaints');
-        console.log('Response from getAllComplaints:', response.data);
-        return response.data;
+        const response = await api.get(`/admin/complaints`);
+        console.log('Response from getAllComplaints:', response.data.data);
+        return response.data.data.content;
     } catch (error : any) {
         if (error.response && error.response.data) {
             const { code, message, details, userMessage } = error.response.data;
@@ -77,10 +77,10 @@ export async function updateComplaintStatus(id: string, updateData: any): Promis
 }
 
 // update complaint result
-export async function updateComplaintResult(id: string, complaintResult: any): Promise<void> {
+export async function updateComplaintResult(id: string, updateData: any): Promise<void> {
     try {
-        console.log('Updating complaint result with data:',complaintResult);
-        const response = await api.put(`/admin/complaint-result/${id}`, complaintResult);
+        console.log('Updating complaint result with data:',updateData.complaintResult);
+        const response = await api.put(`/admin/complaint-result/${id}`, updateData.complaintResult);
         console.log('Response from updating complaint status:', response.data);
         // No return value since it's void
     } catch (error: any) {

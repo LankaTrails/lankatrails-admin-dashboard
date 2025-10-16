@@ -53,8 +53,8 @@ const Complaints = () => {
             try {
                 setIsLoading(true);
                 const response = await findAllComplaints();
-                console.log("Complaints response: ", response.data.content);
-                setComplaints(response.data.content);
+                console.log("Complaints response: ", response);
+                setComplaints(response);
             } catch (error) {
                 console.error('Error fetching complaints:', error);
                 setComplaints([]);

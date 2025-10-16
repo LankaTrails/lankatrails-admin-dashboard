@@ -86,6 +86,8 @@ const ComplaintDetail = () => {
           }));
           setFaultClassificationSaved(true);
         }
+
+        
       } catch (error) {
         console.error('Error fetching complaint:', error);
         toast({
@@ -186,6 +188,28 @@ const ComplaintDetail = () => {
         variant: "destructive",
       });
       return;
+    }else{
+      if(resolutionStatus.faultType =="APP"){
+        complaint.complaintResult=="REFUND_FROM_COMPANY";
+        const updateData={
+          complaintResult:"REFUND_FROM_COMPANY"
+        }
+        const updatedComplaint = await updateComplaintResult(complaint.complaintId,updateData);
+      }else if(resolutionStatus.faultType =="PROVIDER"){
+        complaint.complaintResult=="REFUND_FROM_PROVIDER";
+        const updateData={
+          complaintResult:"REFUND_FROM_PROVIDER"
+        }
+        const updatedComplaint = await updateComplaintResult(complaint.complaintId,updateData);
+      }else{
+        complaint.complaintResult=="REJECT";
+        const updateData={
+          complaintResult:"REJECT"
+        }
+        const updatedComplaint = await updateComplaintResult(complaint.complaintId,updateData);
+      }
+
+      
     }
     
     setIsSavingFault(true);
@@ -202,10 +226,7 @@ const ComplaintDetail = () => {
         complaintResult.refundReason = refundReason;
       }
       
-      // Call the API to update the complaint result
-      console.log("Saving complaint result:", complaint);
-      const updatedComplaint = await updateComplaintResult(complaint.complaintId, complaintResult);
-      console.log("Updated complaint result:", updatedComplaint);
+      
       // Update the saved resolution status with the fault type
       setSavedResolutionStatus(prev => ({
         ...prev,
@@ -328,6 +349,7 @@ const ComplaintDetail = () => {
           </div>
 
           {/* Resolution Section */}
+          {complaint.investigationStartedDate == "null" && (
           <div className="bg-blue-50 rounded-lg p-6 border-2 border-blue-200 shadow-inner">
             <h3 className="text-lg font-semibold mb-4 text-blue-800 flex items-center gap-2">
               <CheckCircle className="h-5 w-5 text-blue-600" /> Resolution Process
@@ -346,7 +368,7 @@ const ComplaintDetail = () => {
                   Mark as In Progress
                 </Label>
               </div>
-
+              
               <div className="mt-4">
                 <Label htmlFor="resolutionNotes" className="block mb-2 font-medium text-gray-700">Resolution Notes</Label>
                 <Textarea
@@ -358,7 +380,7 @@ const ComplaintDetail = () => {
                   disabled={resolutionSaved}
                 />
               </div>
-
+               
               {resolutionStatus.inProgress && !resolutionSaved && (
                 <Button 
                   onClick={handleSaveResolution} 
@@ -376,10 +398,14 @@ const ComplaintDetail = () => {
                 </div>
               )}
             </div>
-          </div>
 
+
+
+          </div>
+          )}
+          
           {/* Only show the rest of the details after Save Resolution Status is clicked */}
-          {detailsLoaded ? (
+          {complaint.investigationStartedDate!="null" ? (
             <>
               {/* Description */}
               <div>
@@ -563,4 +589,4 @@ const ComplaintDetail = () => {
   );
 };
 
-export default ComplaintDetail;
+export default ComplaintDetail; 
