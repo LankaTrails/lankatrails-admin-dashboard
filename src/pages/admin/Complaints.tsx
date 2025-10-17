@@ -24,7 +24,8 @@ const Complaints = () => {
     const [searchTerm, setSearchTerm] = useState('');
     const [statusFilters, setStatusFilters] = useState({ 
       PENDING: true, 
-      IN_PROGRESS: true
+      IN_PROGRESS: true,
+      RESOLVED: true
     });
     const [complaints, setComplaints] = useState<Complaint[]>([]);
     const [isLoading, setIsLoading] = useState(true);
@@ -36,7 +37,7 @@ const Complaints = () => {
 
     // Filter to show only PENDING and IN_PROGRESS complaints
     const filteredComplaints = Array.isArray(complaints) ? complaints
-        .filter(c => c.complaintStatus === 'PENDING' || c.complaintStatus === 'IN_PROGRESS')
+        .filter(c => c.complaintStatus === 'PENDING' || c.complaintStatus === 'IN_PROGRESS'||c.complaintStatus === 'RESOLVED')
         .filter(c => statusFilters[c.complaintStatus as keyof typeof statusFilters])
         .filter(c =>
             c.complaintId?.toString().toLowerCase().includes(searchTerm.toLowerCase()) ||
@@ -104,6 +105,8 @@ const Complaints = () => {
                                 <DropdownMenuSeparator />
                                 <DropdownMenuCheckboxItem checked={statusFilters.PENDING} onCheckedChange={() => handleStatusChange('PENDING')}>Pending</DropdownMenuCheckboxItem>
                                 <DropdownMenuCheckboxItem checked={statusFilters.IN_PROGRESS} onCheckedChange={() => handleStatusChange('IN_PROGRESS')}>In Progress</DropdownMenuCheckboxItem>
+                                <DropdownMenuCheckboxItem checked={statusFilters.RESOLVED} onCheckedChange={() => handleStatusChange('RESOLVED')}>Resolved</DropdownMenuCheckboxItem>
+                            
                             </DropdownMenuContent>
                         </DropdownMenu>
                     </div>
