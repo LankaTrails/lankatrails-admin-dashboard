@@ -146,13 +146,12 @@ const ComplaintDetail = () => {
     
     setIsSaving(true);
     try {
-      const updateData = {
-        resolutionStatus: {
-          investigationStartedDate: new Date().toISOString()
-        }
-      };
+      const investigationStartedDate = new Date().toISOString();
 
-      const updatedComplaint = await updateComplaintStatus(complaint.complaintId, updateData);
+      const updatedComplaint = await updateComplaintStatus(complaint.complaintId, investigationStartedDate);
+      
+      // Update local complaint data
+      setComplaint(prev => prev ? { ...prev, investigationStartedDate } : null);
       
       setSavedResolutionStatus({
         inProgress: resolutionStatus.inProgress,
@@ -188,44 +187,25 @@ const ComplaintDetail = () => {
         variant: "destructive",
       });
       return;
-    }else{
-      if(resolutionStatus.faultType =="APP"){
-        complaint.complaintResult=="REFUND_FROM_COMPANY";
-        const updateData={
-          complaintResult:"REFUND_FROM_COMPANY"
-        }
-        const updatedComplaint = await updateComplaintResult(complaint.complaintId,updateData);
-      }else if(resolutionStatus.faultType =="PROVIDER"){
-        complaint.complaintResult=="REFUND_FROM_PROVIDER";
-        const updateData={
-          complaintResult:"REFUND_FROM_PROVIDER"
-        }
-        const updatedComplaint = await updateComplaintResult(complaint.complaintId,updateData);
-      }else{
-        complaint.complaintResult=="REJECT";
-        const updateData={
-          complaintResult:"REJECT"
-        }
-        const updatedComplaint = await updateComplaintResult(complaint.complaintId,updateData);
-      }
-
-      
     }
     
     setIsSavingFault(true);
     try {
-      // Prepare the complaint result data in the format expected by backend
-      const complaintResult: ComplaintResult = {
-        faultType: resolutionStatus.faultType,
-        notes: resolutionStatus.notes,
-      };
-      
-      // Add refund details if applicable and not rejected
-      if (resolutionStatus.faultType !== "REJECT" && refundAmount && refundReason) {
-        complaintResult.refundAmount = parseFloat(refundAmount);
-        complaintResult.refundReason = refundReason;
+      // Map fault type to complaint result enum
+      let complaintResultValue: string;
+      if (resolutionStatus.faultType === "APP") {
+        complaintResultValue = "REFUND_FROM_COMPANY";
+      } else if (resolutionStatus.faultType === "PROVIDER") {
+        complaintResultValue = "REFUND_FROM_PROVIDER";
+      } else {
+        complaintResultValue = "REJECT";
       }
+
+      // Call API to update complaint result
+      const updatedComplaint = await updateComplaintResult(complaint.complaintId, complaintResultValue);
       
+      // Update local complaint data
+      setComplaint(prev => prev ? { ...prev, complaintResult: complaintResultValue } : null);
       
       // Update the saved resolution status with the fault type
       setSavedResolutionStatus(prev => ({
