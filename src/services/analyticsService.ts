@@ -1,10 +1,31 @@
 import api from "@/api/axiosInstance";
 
-export interface AnalyticsStats {
-  totalProviders: number;
-  totalTourists: number;
-  totalBookings: number;
-  pendingApprovals: number;
+export interface DashboardAnalytics {
+  kpis: {
+    totalBookings: number;
+    totalUniqueTourists: number;
+    totalRevenue: number;
+    averageBookingValue: number;
+  };
+  recentPerformance: {
+    recentBookingsCount: number;
+    recentTourists: number;
+    recentRevenue: number;
+  };
+  bookingStatusDistribution: Record<string, number>;
+  topServices: Array<{ serviceName: string; bookingCount: number }>;
+  topProviders: Array<{ providerName: string; bookingCount: number }>;
+  monthlyTrend: Array<{ month: number; bookingCount: number; revenue: number }>;
+  currentYear: number;
+  growthMetrics: {
+    touristGrowthRate: number;
+  };
+}
+
+export interface TouristAnalytics {
+  totalUniqueTourists: number;
+  newTouristsThisMonth: number;
+  newTouristsLast30Days: number;
 }
 
 export interface CategoryBooking {
@@ -18,30 +39,15 @@ export interface LocationData {
 }
 
 /**
- * Get basic analytics statistics
- * Note: Backend doesn't have a dedicated analytics endpoint,
- * so we aggregate from existing endpoints
+ * Get comprehensive dashboard analytics from backend
  */
-export async function getAnalyticsStats(): Promise<AnalyticsStats> {
+export async function getDashboardAnalytics(): Promise<DashboardAnalytics> {
   try {
-    // Fetch provider data to get counts
-    const providerResponse = await api.get('/admin/approve-provider/providers');
-    const providers = providerResponse.data.data.content || [];
-    
-    // Count total providers and pending approvals
-    const totalProviders = providers.length;
-    const pendingApprovals = providers.filter((p: any) => p.status === 'PENDING').length;
-    
-    // Since we don't have dedicated endpoints for tourists and bookings counts,
-    // we'll return what we can calculate
-    return {
-      totalProviders,
-      totalTourists: 0, // Backend doesn't have this endpoint
-      totalBookings: 0, // Backend doesn't have this endpoint
-      pendingApprovals
-    };
+    const response = await api.get('/admin/analytics/dashboard');
+    console.log('Dashboard analytics response:', response.data);
+    return response.data.data;
   } catch (error: any) {
-    console.error('Error fetching analytics stats:', error);
+    console.error('Error fetching dashboard analytics:', error);
     if (error.response && error.response.data) {
       const { code, message, userMessage } = error.response.data;
       throw {
@@ -51,7 +57,87 @@ export async function getAnalyticsStats(): Promise<AnalyticsStats> {
       };
     }
     throw {
-      message: 'Failed to load analytics statistics',
+      message: 'Failed to load dashboard analytics',
+      code: 'UNKNOWN_ERROR',
+    };
+  }
+}
+
+/**
+ * Get tourist analytics from backend
+ */
+export async function getTouristAnalytics(): Promise<TouristAnalytics> {
+  try {
+    const response = await api.get('/admin/analytics/tourists');
+    console.log('Tourist analytics response:', response.data);
+    return response.data.data;
+  } catch (error: any) {
+    console.error('Error fetching tourist analytics:', error);
+    if (error.response && error.response.data) {
+      const { code, message, userMessage } = error.response.data;
+      throw {
+        code,
+        message,
+        userMessage,
+      };
+    }
+    throw {
+      message: 'Failed to load tourist analytics',
+      code: 'UNKNOWN_ERROR',
+    };
+  }
+}
+
+/**
+ * Get booking analytics for a date range
+ */
+export async function getBookingAnalytics(from: string, to: string) {
+  try {
+    const response = await api.get('/admin/analytics/bookings', {
+      params: { from, to }
+    });
+    console.log('Booking analytics response:', response.data);
+    return response.data.data;
+  } catch (error: any) {
+    console.error('Error fetching booking analytics:', error);
+    throw {
+      message: 'Failed to load booking analytics',
+      code: 'UNKNOWN_ERROR',
+    };
+  }
+}
+
+/**
+ * Get revenue analytics for a date range
+ */
+export async function getRevenueAnalytics(from: string, to: string) {
+  try {
+    const response = await api.get('/admin/analytics/revenue', {
+      params: { from, to }
+    });
+    console.log('Revenue analytics response:', response.data);
+    return response.data.data;
+  } catch (error: any) {
+    console.error('Error fetching revenue analytics:', error);
+    throw {
+      message: 'Failed to load revenue analytics',
+      code: 'UNKNOWN_ERROR',
+    };
+  }
+}
+
+/**
+ * Get monthly analytics for a specific year
+ */
+export async function getMonthlyAnalytics(year: number) {
+  try {
+    const response = await api.get(`/admin/analytics/monthly/${year}`);
+    console.log('Monthly analytics response:', response.data);
+    return response.data.data;
+  } catch (error: any) {
+    console.error('Error fetching monthly analytics:', error);
+    throw {
+      message: 'Failed to load monthly analytics',
       code: 'UNKNOWN_ERROR',
     };
   }
@@ -59,6 +145,7 @@ export async function getAnalyticsStats(): Promise<AnalyticsStats> {
 
 /**
  * Get provider distribution by location
+ * Still uses provider endpoint as location data isn't in analytics
  */
 export async function getProvidersByLocation(): Promise<LocationData[]> {
   try {
@@ -87,48 +174,23 @@ export async function getProvidersByLocation(): Promise<LocationData[]> {
 }
 
 /**
- * Get provider distribution by business type (category)
+ * Get total provider count and pending approvals
+ * Still uses provider endpoint
  */
-export async function getProvidersByCategory(): Promise<CategoryBooking[]> {
+export async function getProviderStats() {
   try {
     const response = await api.get('/admin/approve-provider/providers');
     const providers = response.data.data.content || [];
     
-    // Aggregate by business type
-    const categoryMap = new Map<string, number>();
-    providers.forEach((provider: any) => {
-      const type = provider.businessType || 'Unknown';
-      categoryMap.set(type, (categoryMap.get(type) || 0) + 1);
-    });
+    const totalProviders = providers.length;
+    const pendingApprovals = providers.filter((p: any) => p.status === 'PENDING').length;
     
-    // Convert to array format
-    return Array.from(categoryMap.entries()).map(([category, count]) => ({
-      category,
-      bookings: count // Using 'bookings' field name to match chart expectations
-    }));
+    return { totalProviders, pendingApprovals };
   } catch (error: any) {
-    console.error('Error fetching providers by category:', error);
+    console.error('Error fetching provider stats:', error);
     throw {
-      message: 'Failed to load provider category data',
+      message: 'Failed to load provider stats',
       code: 'UNKNOWN_ERROR',
     };
   }
-}
-
-/**
- * Get mock revenue data for demonstration
- * Note: Backend doesn't have revenue/payment analytics endpoints yet
- */
-export async function getRevenueData() {
-  // Mock data since backend doesn't have this endpoint
-  return [
-    { month: 'Jan', revenue: 0 }, 
-    { month: 'Feb', revenue: 0 }, 
-    { month: 'Mar', revenue: 0 },
-    { month: 'Apr', revenue: 0 }, 
-    { month: 'May', revenue: 0 }, 
-    { month: 'Jun', revenue: 0 },
-    { month: 'Jul', revenue: 0 }, 
-    { month: 'Aug', revenue: 0 },
-  ];
 }

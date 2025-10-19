@@ -3,15 +3,14 @@ import { DollarSign, Users, ShoppingCart, Activity, Loader2, AlertCircle } from 
 import { motion } from 'framer-motion';
 import { BarChart, Bar, LineChart, Line, PieChart, Pie, Cell, XAxis, YAxis, CartesianGrid, Tooltip, Legend, ResponsiveContainer } from 'recharts';
 import { useState, useEffect } from 'react';
-import { getAnalyticsStats, getProvidersByLocation, getProvidersByCategory, getRevenueData } from '@/services/analyticsService';
+import { getDashboardAnalytics, getProvidersByLocation, getProviderStats, DashboardAnalytics } from '@/services/analyticsService';
 import { Alert, AlertDescription } from '@/components/ui/alert';
 
 const COLORS = ['#007E6A', '#8B5CF6', '#F59E0B', '#EF4444', '#3B82F6', '#10B981'];
 
 const Analytics = () => {
-  const [stats, setStats] = useState<any>(null);
-  const [revenueData, setRevenueData] = useState<any[]>([]);
-  const [categoryData, setCategoryData] = useState<any[]>([]);
+  const [dashboardData, setDashboardData] = useState<DashboardAnalytics | null>(null);
+  const [providerStats, setProviderStats] = useState<any>(null);
   const [locationData, setLocationData] = useState<any[]>([]);
   const [isLoading, setIsLoading] = useState(true);
   const [error, setError] = useState<string | null>(null);
@@ -29,16 +28,14 @@ const Analytics = () => {
       setError(null);
       
       // Fetch all analytics data in parallel
-      const [statsData, revenue, categories, locations] = await Promise.all([
-        getAnalyticsStats(),
-        getRevenueData(),
-        getProvidersByCategory(),
+      const [dashboard, providers, locations] = await Promise.all([
+        getDashboardAnalytics(),
+        getProviderStats(),
         getProvidersByLocation()
       ]);
 
-      setStats(statsData);
-      setRevenueData(revenue);
-      setCategoryData(categories);
+      setDashboardData(dashboard);
+      setProviderStats(providers);
       // Convert location data to pie chart format
       setLocationData(locations.map(loc => ({ name: loc.location, value: loc.providers })));
     } catch (err: any) {
@@ -48,11 +45,35 @@ const Analytics = () => {
     }
   };
 
-  const kpiData = stats ? [
-    { title: "Total Providers", value: stats.totalProviders.toString(), icon: Users, change: "", changeType: "neutral" },
-    { title: "Pending Approvals", value: stats.pendingApprovals.toString(), icon: Activity, change: "", changeType: "neutral" },
-    { title: "Total Tourists", value: stats.totalTourists.toString(), icon: Users, change: "N/A", changeType: "neutral" },
-    { title: "Total Bookings", value: stats.totalBookings.toString(), icon: ShoppingCart, change: "N/A", changeType: "neutral" },
+  const kpiData = dashboardData && providerStats ? [
+    { 
+      title: "Total Bookings", 
+      value: dashboardData.kpis.totalBookings.toString(), 
+      icon: ShoppingCart, 
+      change: `${dashboardData.recentPerformance.recentBookingsCount} last 30 days`, 
+      changeType: "neutral" 
+    },
+    { 
+      title: "Total Tourists", 
+      value: dashboardData.kpis.totalUniqueTourists.toString(), 
+      icon: Users, 
+      change: `+${dashboardData.growthMetrics.touristGrowthRate.toFixed(1)}%`, 
+      changeType: dashboardData.growthMetrics.touristGrowthRate >= 0 ? "increase" : "decrease" 
+    },
+    { 
+      title: "Total Revenue", 
+      value: `$${dashboardData.kpis.totalRevenue.toLocaleString()}`, 
+      icon: DollarSign, 
+      change: `$${dashboardData.recentPerformance.recentRevenue.toLocaleString()} last 30 days`, 
+      changeType: "neutral" 
+    },
+    { 
+      title: "Avg Booking Value", 
+      value: `$${dashboardData.kpis.averageBookingValue.toLocaleString()}`, 
+      icon: Activity, 
+      change: `${providerStats.totalProviders} providers`, 
+      changeType: "neutral" 
+    },
   ] : [];
 
   if (isLoading) {
@@ -112,22 +133,25 @@ const Analytics = () => {
                 <div className="w-1 h-6 bg-gradient-success rounded-full"></div>
                 Revenue Trend
               </CardTitle>
-              <CardDescription>Monthly revenue over the last 8 months.</CardDescription>
+              <CardDescription>Monthly revenue for {dashboardData?.currentYear || new Date().getFullYear()}.</CardDescription>
             </CardHeader>
             <CardContent className="h-80">
               <ResponsiveContainer width="100%" height="100%">
-                {revenueData.length === 0 ? (
+                {!dashboardData || dashboardData.monthlyTrend.length === 0 ? (
                   <div className="flex items-center justify-center h-full text-gray-500">
-                    <p>Revenue data not available. Backend integration needed.</p>
+                    <p>No monthly revenue data available.</p>
                   </div>
                 ) : (
-                  <LineChart data={revenueData} margin={{ top: 5, right: 20, left: -10, bottom: 5 }}>
-                    <CartesianGrid strokeDasharray="3 3" vertical={false} stroke="#E5E7EB" />
-                    <XAxis dataKey="month" fontSize={12} tickLine={false} axisLine={false} stroke="#6B7280" />
-                    <YAxis fontSize={12} tickLine={false} axisLine={false} tickFormatter={(value) => `LKR ${value}k`} stroke="#6B7280" />
-                    <Tooltip cursor={{fill: 'rgba(16,185,129,0.1)'}} contentStyle={{ borderRadius: '8px', border: '1px solid #D1FAE5' }} />
+                  <LineChart data={dashboardData.monthlyTrend.map(m => ({ 
+                    month: new Date(dashboardData.currentYear, m.month - 1).toLocaleString('default', { month: 'short' }), 
+                    revenue: m.revenue 
+                  }))} margin={{ top: 5, right: 20, left: -10, bottom: 5 }}>
+                    <CartesianGrid strokeDasharray="3 3" vertical={false} />
+                    <XAxis dataKey="month" fontSize={12} tickLine={false} axisLine={false} />
+                    <YAxis fontSize={12} tickLine={false} axisLine={false} tickFormatter={(value) => `$${(value / 1000).toFixed(0)}k`} />
+                    <Tooltip cursor={{fill: 'rgba(100,100,100,0.1)'}} />
                     <Legend />
-                    <Line type="monotone" dataKey="revenue" stroke="#10B981" strokeWidth={3} dot={{ r: 5, fill: '#10B981', strokeWidth: 2, stroke: '#fff' }} activeDot={{ r: 7, fill: '#059669' }} />
+                    <Line type="monotone" dataKey="revenue" stroke="#16a34a" strokeWidth={2} dot={{ r: 4 }} activeDot={{ r: 6 }} />
                   </LineChart>
                 )}
               </ResponsiveContainer>
@@ -139,23 +163,23 @@ const Analytics = () => {
             <CardHeader>
               <CardTitle className="flex items-center gap-2 text-gray-800">
                 <div className="w-1 h-6 bg-gradient-info rounded-full"></div>
-                Providers by Business Type
+                Top Services by Bookings
               </CardTitle>
-              <CardDescription>Distribution of providers across business types.</CardDescription>
+              <CardDescription>Most popular services based on booking count.</CardDescription>
             </CardHeader>
             <CardContent className="h-80">
               <ResponsiveContainer width="100%" height="100%">
-                {categoryData.length === 0 ? (
+                {!dashboardData || dashboardData.topServices.length === 0 ? (
                   <div className="flex items-center justify-center h-full text-gray-500">
-                    <p>No provider categories found.</p>
+                    <p>No service data available.</p>
                   </div>
                 ) : (
-                  <BarChart data={categoryData} layout="vertical" margin={{ top: 5, right: 20, left: 10, bottom: 5 }}>
-                    <CartesianGrid strokeDasharray="3 3" horizontal={false} stroke="#E5E7EB" />
-                    <XAxis type="number" fontSize={12} tickLine={false} axisLine={false} stroke="#6B7280" />
-                    <YAxis type="category" dataKey="category" fontSize={12} tickLine={false} axisLine={false} width={100} stroke="#6B7280" />
-                    <Tooltip cursor={{fill: 'rgba(59,130,246,0.1)'}} contentStyle={{ borderRadius: '8px', border: '1px solid #BFDBFE' }} />
-                    <Bar dataKey="bookings" fill="#3B82F6" radius={[0, 8, 8, 0]} />
+                  <BarChart data={dashboardData.topServices} layout="vertical" margin={{ top: 5, right: 20, left: 10, bottom: 5 }}>
+                    <CartesianGrid strokeDasharray="3 3" horizontal={false} />
+                    <XAxis type="number" fontSize={12} tickLine={false} axisLine={false} />
+                    <YAxis type="category" dataKey="serviceName" fontSize={12} tickLine={false} axisLine={false} width={120} />
+                    <Tooltip cursor={{fill: 'rgba(100,100,100,0.1)'}} />
+                    <Bar dataKey="bookingCount" fill="#0088FE" radius={[0, 4, 4, 0]} />
                   </BarChart>
                 )}
               </ResponsiveContainer>
