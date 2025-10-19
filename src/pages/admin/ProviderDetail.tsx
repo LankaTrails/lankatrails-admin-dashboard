@@ -11,11 +11,16 @@ import { getProviderById, ProviderDetailInfo } from "@/services/providerService"
 
 
 const getStatusVariant = (status: string) => {
-  switch (status) {
-    case 'Approved': return { variant: 'default', color: 'bg-green-600 hover:bg-green-600/80' };
-    case 'Pending': return { variant: 'secondary', color: 'bg-yellow-500 hover:bg-yellow-500/80' };
-    case 'Rejected': return { variant: 'destructive', color: 'bg-red-600 hover:bg-red-600/80' };
-    default: return { variant: 'outline', color: '' };
+  switch (status.toUpperCase()) {
+    case 'ACTIVE':
+    case 'APPROVED': 
+      return { variant: 'default', color: 'bg-green-600 hover:bg-green-600/80' };
+    case 'PENDING': 
+      return { variant: 'secondary', color: 'bg-yellow-500 hover:bg-yellow-500/80' };
+    case 'REJECTED': 
+      return { variant: 'destructive', color: 'bg-red-600 hover:bg-red-600/80' };
+    default: 
+      return { variant: 'outline', color: '' };
   }
 };
 

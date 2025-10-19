@@ -14,7 +14,7 @@ import { getAllProviders, ProviderBasicInfo } from '@/services/providerService';
 
 const Providers = () => {
     const [searchTerm, setSearchTerm] = useState('');
-    const [statusFilters, setStatusFilters] = useState({ APPROVED: true, PENDING: true, REJECTED: true });
+    const [statusFilters, setStatusFilters] = useState({ ACTIVE: true, PENDING: true, REJECTED: true });
     const [allProviders, setAllProviders] = useState<ProviderBasicInfo[]>([]);
     const [isLoading, setIsLoading] = useState(true);
     const [error, setError] = useState<string | null>(null);
@@ -80,7 +80,7 @@ const Providers = () => {
                             <DropdownMenuContent align="end">
                                 <DropdownMenuLabel>Filter by status</DropdownMenuLabel>
                                 <DropdownMenuSeparator />
-                                <DropdownMenuCheckboxItem checked={statusFilters.APPROVED} onCheckedChange={() => handleStatusChange('APPROVED')}>Approved</DropdownMenuCheckboxItem>
+                                <DropdownMenuCheckboxItem checked={statusFilters.ACTIVE} onCheckedChange={() => handleStatusChange('ACTIVE')}>Active</DropdownMenuCheckboxItem>
                                 <DropdownMenuCheckboxItem checked={statusFilters.PENDING} onCheckedChange={() => handleStatusChange('PENDING')}>Pending</DropdownMenuCheckboxItem>
                                 <DropdownMenuCheckboxItem checked={statusFilters.REJECTED} onCheckedChange={() => handleStatusChange('REJECTED')}>Rejected</DropdownMenuCheckboxItem>
                             </DropdownMenuContent>
@@ -126,7 +126,7 @@ const Providers = () => {
                                         </TableCell>
                                         <TableCell className="hidden md:table-cell">{provider.businessType}</TableCell>
                                         <TableCell>
-                                            <Badge variant={provider.status === 'APPROVED' ? 'default' : provider.status === 'PENDING' ? 'secondary' : 'destructive'} className={`capitalize ${provider.status === 'APPROVED' ? 'bg-green-600 hover:bg-green-600/80' : ''}`}>{provider.status}</Badge>
+                                            <Badge variant={provider.status === 'ACTIVE' ? 'default' : provider.status === 'PENDING' ? 'secondary' : 'destructive'} className={`capitalize lowercase ${provider.status === 'ACTIVE' ? 'bg-green-600 hover:bg-green-600/80' : ''}`}>{provider.status.toLowerCase()}</Badge>
                                         </TableCell>
                                         <TableCell className="hidden lg:table-cell">{provider.city || 'N/A'}</TableCell>
                                         <TableCell className="hidden lg:table-cell">{provider.businessRegistrationNumber}</TableCell>
