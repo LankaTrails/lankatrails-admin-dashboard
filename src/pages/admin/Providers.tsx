@@ -53,26 +53,29 @@ const Providers = () => {
 
     return (
         <motion.div initial="hidden" animate="visible" variants={{ visible: { transition: { staggerChildren: 0.1 } } }}>
-            <Card>
-                <CardHeader>
-                    <CardTitle>Provider Management</CardTitle>
+            <Card className="shadow-xl border-0 bg-gradient-to-br from-white via-primary-50/20 to-white">
+                <CardHeader className="border-b border-primary-100 bg-gradient-to-r from-primary-50/50 to-transparent">
+                    <CardTitle className="flex items-center gap-2 text-gray-800">
+                        <div className="w-1 h-8 bg-gradient-primary rounded-full"></div>
+                        Provider Management
+                    </CardTitle>
                     <CardDescription>View, manage, and approve provider accounts.</CardDescription>
                 </CardHeader>
                 <CardContent>
                     <div className="flex items-center justify-between gap-4 mb-6">
                         <div className="relative w-full max-w-sm">
-                            <Search className="absolute left-2.5 top-2.5 h-4 w-4 text-muted-foreground" />
+                            <Search className="absolute left-2.5 top-2.5 h-4 w-4 text-primary-500" />
                             <Input
                                 type="search"
                                 placeholder="Search by name, owner, or service..."
-                                className="pl-8 sm:w-[300px]"
+                                className="pl-8 sm:w-[300px] border-primary-200 focus:ring-primary-500 focus:border-primary-500"
                                 value={searchTerm}
                                 onChange={(e) => setSearchTerm(e.target.value)}
                             />
                         </div>
                         <DropdownMenu>
                             <DropdownMenuTrigger asChild>
-                                <Button variant="outline" size="sm" className="h-10 gap-1">
+                                <Button variant="outline" size="sm" className="h-10 gap-1 border-primary-200 hover:bg-primary-50 hover:text-primary-700">
                                     <ListFilter className="h-3.5 w-3.5" />
                                     <span className="sr-only sm:not-sr-only sm:whitespace-nowrap">Filter</span>
                                 </Button>
@@ -126,7 +129,7 @@ const Providers = () => {
                                         </TableCell>
                                         <TableCell className="hidden md:table-cell">{provider.businessType}</TableCell>
                                         <TableCell>
-                                            <Badge variant={provider.status === 'ACTIVE' ? 'default' : provider.status === 'PENDING' ? 'secondary' : 'destructive'} className={`capitalize lowercase ${provider.status === 'ACTIVE' ? 'bg-green-600 hover:bg-green-600/80' : ''}`}>{provider.status.toLowerCase()}</Badge>
+                                            <Badge variant={provider.status === 'ACTIVE' ? 'default' : provider.status === 'PENDING' ? 'secondary' : 'destructive'} className={`capitalize lowercase ${provider.status === 'ACTIVE' ? 'bg-success-500 hover:bg-success-600 border-0' : provider.status === 'PENDING' ? 'bg-warning-500 text-white hover:bg-warning-600 border-0' : 'bg-destructive-500 hover:bg-destructive-600 border-0'}`}>{provider.status.toLowerCase()}</Badge>
                                         </TableCell>
                                         <TableCell className="hidden lg:table-cell">{provider.city || 'N/A'}</TableCell>
                                         <TableCell className="hidden lg:table-cell">{provider.businessRegistrationNumber}</TableCell>
@@ -144,7 +147,7 @@ const Providers = () => {
                                         </TableCell>
                                         <TableCell className="text-right">
                                             <div className="flex items-center justify-end gap-2">
-                                                <Button variant="outline" size="icon" className="h-8 w-8 hover:bg-primary/10" onClick={() => navigate(`/admin/providers/${provider.userId || encodeURIComponent(provider.email)}`)}><Eye className="h-4 w-4" /></Button>
+                                                <Button variant="outline" size="icon" className="h-8 w-8 hover:bg-info-100 hover:text-info-600 border-info-200" onClick={() => navigate(`/admin/providers/${provider.userId || encodeURIComponent(provider.email)}`)}><Eye className="h-4 w-4" /></Button>
                                             </div>
                                         </TableCell>
                                     </motion.tr>

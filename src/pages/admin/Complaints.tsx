@@ -13,9 +13,9 @@ import { Complaint } from '@/types/complaints';
 
 const getStatusVariant = (status: string) => {
   switch (status) {
-    case 'RESOLVED': return { variant: 'default', icon: CheckCircle, color: 'bg-green-600 hover:bg-green-600/80' };
-    case 'IN_PROGRESS': return { variant: 'secondary', icon: Clock, color: '' };
-    case 'PENDING': return { variant: 'destructive', icon: XCircle, color: '' };
+    case 'RESOLVED': return { variant: 'default', icon: CheckCircle, color: 'bg-success-500 hover:bg-success-600 border-0' };
+    case 'IN_PROGRESS': return { variant: 'secondary', icon: Clock, color: 'bg-info-500 text-white hover:bg-info-600 border-0' };
+    case 'PENDING': return { variant: 'destructive', icon: XCircle, color: 'bg-warning-500 text-white hover:bg-warning-600 border-0' };
     default: return { variant: 'outline', icon: Clock, color: '' };
   }
 };
@@ -75,26 +75,29 @@ const Complaints = () => {
 
     return (
         <motion.div initial="hidden" animate="visible" variants={{ visible: { transition: { staggerChildren: 0.1 } } }}>
-            <Card>
-                <CardHeader>
-                    <CardTitle>Complaints Management</CardTitle>
+            <Card className="shadow-xl border-0 bg-gradient-to-br from-white via-destructive-50/20 to-white">
+                <CardHeader className="border-b border-destructive-100 bg-gradient-to-r from-destructive-50/50 to-transparent">
+                    <CardTitle className="flex items-center gap-2 text-gray-800">
+                        <div className="w-1 h-8 bg-gradient-rose rounded-full"></div>
+                        Complaints Management
+                    </CardTitle>
                     <CardDescription>View, track, and manage all user complaints.</CardDescription>
                 </CardHeader>
                 <CardContent>
                     <div className="flex items-center justify-between gap-4 mb-6">
                         <div className="relative w-full max-w-sm">
-                            <Search className="absolute left-2.5 top-2.5 h-4 w-4 text-muted-foreground" />
+                            <Search className="absolute left-2.5 top-2.5 h-4 w-4 text-destructive-500" />
                             <Input
                                 type="search"
                                 placeholder="Search by ID, email, business, or status..."
-                                className="pl-8 sm:w-[300px]"
+                                className="pl-8 sm:w-[300px] border-destructive-200 focus:ring-destructive-500 focus:border-destructive-500"
                                 value={searchTerm}
                                 onChange={(e) => setSearchTerm(e.target.value)}
                             />
                         </div>
                         <DropdownMenu>
                             <DropdownMenuTrigger asChild>
-                                <Button variant="outline" size="sm" className="h-10 gap-1">
+                                <Button variant="outline" size="sm" className="h-10 gap-1 border-destructive-200 hover:bg-destructive-50 hover:text-destructive-700">
                                     <ListFilter className="h-3.5 w-3.5" />
                                     <span className="sr-only sm:not-sr-only">Filter</span>
                                 </Button>
@@ -140,7 +143,7 @@ const Complaints = () => {
                                                     </Badge>
                                                 </TableCell>
                                                 <TableCell className="text-right">
-                                                    <Button variant="outline" size="icon" className="h-8 w-8 hover:bg-primary/10" onClick={() => navigate(`/admin/complaints/${complaint.complaintId}`)}>
+                                                    <Button variant="outline" size="icon" className="h-8 w-8 hover:bg-info-100 hover:text-info-600 border-info-200" onClick={() => navigate(`/admin/complaints/${complaint.complaintId}`)}>
                                                         <Eye className="h-4 w-4" />
                                                     </Button>
                                                 </TableCell>

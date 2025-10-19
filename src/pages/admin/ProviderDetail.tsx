@@ -14,11 +14,11 @@ const getStatusVariant = (status: string) => {
   switch (status.toUpperCase()) {
     case 'ACTIVE':
     case 'APPROVED': 
-      return { variant: 'default', color: 'bg-green-600 hover:bg-green-600/80' };
+      return { variant: 'default', color: 'bg-success-500 hover:bg-success-600 border-0 shadow-md' };
     case 'PENDING': 
-      return { variant: 'secondary', color: 'bg-yellow-500 hover:bg-yellow-500/80' };
+      return { variant: 'secondary', color: 'bg-warning-500 text-white hover:bg-warning-600 border-0 shadow-md' };
     case 'REJECTED': 
-      return { variant: 'destructive', color: 'bg-red-600 hover:bg-red-600/80' };
+      return { variant: 'destructive', color: 'bg-destructive-500 hover:bg-destructive-600 border-0 shadow-md' };
     default: 
       return { variant: 'outline', color: '' };
   }
@@ -107,7 +107,7 @@ const ProviderDetail = () => {
   return (
     <motion.div initial={{ opacity: 0, y: 40 }} animate={{ opacity: 1, y: 0 }} transition={{ duration: 0.5 }} className="w-full mx-auto">
       {/* Hero Header */}
-      <div className="relative w-full rounded-t-2xl overflow-hidden bg-gradient-to-r from-primary/90 to-primary/60 shadow-lg mb-0">
+      <div className="relative w-full rounded-t-2xl overflow-hidden bg-gradient-primary shadow-2xl mb-0">
         <div className="flex items-center gap-6 px-8 py-8">
           <div className="bg-white/80 rounded-full p-2 shadow-lg">
             <img src={provider.profilePicUrl || '/default-profile.jpg'} alt="Profile" className="h-24 w-24 object-cover rounded-full border-4 border-primary shadow-xl" />
@@ -115,13 +115,13 @@ const ProviderDetail = () => {
           <div className="flex-1">
             <h1 className="text-3xl font-bold text-white drop-shadow-lg flex items-center gap-4">
               {provider.businessName}
-              <Badge variant={statusInfo.variant as any} className={`capitalize text-base px-4 py-2 ml-2 shadow-md ${statusInfo.color}`}>
+              <Badge variant={statusInfo.variant as any} className={`capitalize text-base px-4 py-2 ml-2 ${statusInfo.color} bg-opacity-80`}>
                 {provider.status}
               </Badge>
             </h1>
             <div className="mt-2 text-white/90 text-lg flex items-center gap-2">
-              <Mail className="h-5 w-5 mr-1" />
-              <span className="font-semibold">{provider.email}</span>
+              <Mail className="h-5 w-5 mr-1 text-primary" />
+              <span className="font-semibold text-white">{provider.email}</span>
             </div>
           </div>
           <Button variant="ghost" className="text-white border-white border-2 hover:bg-white/10" onClick={() => navigate(-1)}>
@@ -130,10 +130,10 @@ const ProviderDetail = () => {
         </div>
       </div>
       {/* Main Card */}
-      <Card className="shadow-2xl border-2 border-primary/20 bg-white/95 rounded-t-none rounded-b-2xl w-full max-w-3xl mx-auto -mt-6 z-10 relative">
+      <Card className="shadow-2xl border-0 bg-white rounded-t-none rounded-b-2xl w-full max-w-3xl mx-auto -mt-6 z-10 relative">
         <CardContent className="space-y-8 w-full pt-10">
           {/* Meta Info Bar */}
-          <div className="grid grid-cols-1 md:grid-cols-2 gap-6 bg-primary/5 rounded-lg p-6 border border-primary/10 shadow-inner">
+          <div className="grid grid-cols-1 md:grid-cols-2 gap-6 bg-gradient-to-br from-primary-50 to-secondary-50/30 rounded-xl p-6 border-2 border-primary-100 shadow-md">
             <div className="flex items-center gap-2"><Building2 className="h-5 w-5 text-primary" /><span className="font-semibold text-gray-700">Business Name:</span> <span className="ml-1 text-gray-800">{provider.businessName}</span></div>
             <div className="flex items-center gap-2"><Briefcase className="h-5 w-5 text-primary" /><span className="font-semibold text-gray-700">Business Type:</span> <span className="ml-1 text-gray-800">{provider.businessType}</span></div>
             <div className="flex items-center gap-2"><IdCard className="h-5 w-5 text-primary" /><span className="font-semibold text-gray-700">Registration No:</span> <span className="ml-1 text-gray-800">{provider.businessRegistrationNumber}</span></div>
@@ -141,16 +141,24 @@ const ProviderDetail = () => {
           </div>
           {/* Business Description */}
           <div>
-            <h3 className="text-lg font-semibold mb-2 text-primary-700 flex items-center gap-2"><FileText className="h-5 w-5 text-primary" /> Business Description</h3>
-            <p className="text-gray-700 bg-primary/5 rounded-lg p-6 border-l-4 border-primary/40 border border-primary/10 shadow-inner text-lg text-left">
+            <h3 className="text-lg font-semibold mb-3 text-gray-800 flex items-center gap-2">
+              <div className="p-2 bg-gradient-primary rounded-lg">
+                <FileText className="h-5 w-5 text-white" />
+              </div>
+              Business Description
+            </h3>
+            <p className="text-gray-700 bg-gradient-to-br from-primary-50 to-white rounded-xl p-6 border-l-4 border-primary-500 border border-primary-100 shadow-md text-base text-left">
               {provider.businessDescription}
             </p>
           </div>
           {/* Business Registration */}
           {provider.businessRegistrationUrl && (
-          <div className="bg-primary/5 rounded-lg p-6 border border-primary/10 shadow-inner">
-            <h3 className="text-lg font-semibold mb-4 text-primary-700 flex items-center gap-2">
-              <FileText className="h-5 w-5 text-primary" /> Business Registration Document
+          <div className="bg-gradient-to-br from-info-50 to-white rounded-xl p-6 border-2 border-info-100 shadow-md">
+            <h3 className="text-lg font-semibold mb-4 text-gray-800 flex items-center gap-2">
+              <div className="p-2 bg-gradient-info rounded-lg">
+                <FileText className="h-5 w-5 text-white" />
+              </div>
+              Business Registration Document
             </h3>
             <div className="bg-white rounded-lg border border-primary/20 shadow p-4 flex flex-col gap-2">
               <div className="flex items-center gap-2">
@@ -159,8 +167,8 @@ const ProviderDetail = () => {
                 <button className="text-primary underline ml-1" onClick={() => setViewFile({ url: provider.businessRegistrationUrl, title: 'Business Registration Document' })}>View</button>
               </div>
               <div className="flex gap-2 mt-2">
-                <Button size="sm" variant="outline" onClick={() => setRegFileStatus('accepted')} disabled={regFileStatus==='accepted'}><CheckCircle className="h-4 w-4 mr-1 text-green-600" /> Accept</Button>
-                <Button size="sm" variant="outline" onClick={() => setRegFileStatus('declined')} disabled={regFileStatus==='declined'}><XCircle className="h-4 w-4 mr-1 text-red-600" /> Decline</Button>
+                <Button size="sm" variant="outline" onClick={() => setRegFileStatus('accepted')} disabled={regFileStatus==='accepted'} className="border-success-300 hover:bg-success-100 text-success-700"><CheckCircle className="h-4 w-4 mr-1" /> Accept</Button>
+                <Button size="sm" variant="outline" onClick={() => setRegFileStatus('declined')} disabled={regFileStatus==='declined'} className="border-destructive-300 hover:bg-destructive-100 text-destructive-700"><XCircle className="h-4 w-4 mr-1" /> Decline</Button>
                 {renderFileStatus(regFileStatus)}
               </div>
             </div>
@@ -180,9 +188,11 @@ const ProviderDetail = () => {
           )}
 
           {/* Stripe Onboarding Status Section */}
-          <div className="bg-primary/5 rounded-lg p-6 border border-primary/10 shadow-inner">
-            <h3 className="text-lg font-semibold mb-4 text-primary-700 flex items-center gap-2">
-              <CreditCard className="h-5 w-5 text-primary" /> 
+          <div className="bg-gradient-to-br from-secondary-50 to-white rounded-xl p-6 border-2 border-secondary-100 shadow-md">
+            <h3 className="text-lg font-semibold mb-4 text-gray-800 flex items-center gap-2">
+              <div className="p-2 bg-gradient-purple rounded-lg">
+                <CreditCard className="h-5 w-5 text-white" />
+              </div>
               Payment Account Setup (Stripe Onboarding)
             </h3>
             
@@ -195,16 +205,16 @@ const ProviderDetail = () => {
               <div className="space-y-4">
                 {/* Overall Status Alert */}
                 {isFullyOnboarded ? (
-                  <Alert className="border-green-200 bg-green-50">
-                    <CheckCircle className="h-5 w-5 text-green-600" />
-                    <AlertDescription className="text-green-800">
+                  <Alert className="border-success-200 bg-success-50">
+                    <CheckCircle className="h-5 w-5 text-success-600" />
+                    <AlertDescription className="text-success-800">
                       Payment account is fully set up and operational.
                     </AlertDescription>
                   </Alert>
                 ) : (
-                  <Alert className="border-yellow-200 bg-yellow-50">
-                    <AlertCircle className="h-5 w-5 text-yellow-600" />
-                    <AlertDescription className="text-yellow-800">
+                  <Alert className="border-warning-200 bg-warning-50">
+                    <AlertCircle className="h-5 w-5 text-warning-600" />
+                    <AlertDescription className="text-warning-800">
                       Payment account setup is incomplete. Provider needs to complete onboarding.
                     </AlertDescription>
                   </Alert>

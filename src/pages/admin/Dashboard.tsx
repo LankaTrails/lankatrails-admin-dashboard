@@ -29,7 +29,7 @@ const providerStatusData = [
   { name: 'Rejected', value: providers.filter(p => p.status === 'Rejected').length },
 ];
 
-const COLORS = ['#16a34a', '#f59e0b', '#dc2626'];
+const COLORS = ['#10B981', '#F59E0B', '#EF4444'];
 
 const Dashboard = () => {
   const containerVariants = { hidden: { opacity: 0 }, visible: { opacity: 1, transition: { staggerChildren: 0.1 } } };
@@ -39,42 +39,51 @@ const Dashboard = () => {
     <>
       <motion.div className="grid gap-4 md:grid-cols-2 md:gap-8 lg:grid-cols-4" variants={containerVariants} initial="hidden" animate="visible">
         <motion.div variants={itemVariants}>
-          <Card className="hover:shadow-lg transition-shadow">
-            <CardHeader className="flex flex-row items-center justify-between space-y-0 pb-2">
-              <CardTitle className="text-sm font-medium">Total Revenue</CardTitle>
-              <span className="text-green-500">$</span>
+          <Card className="hover:shadow-xl transition-all duration-300 border-0 shadow-lg overflow-hidden relative bg-gradient-to-br from-success-50 to-white">
+            <div className="absolute top-0 right-0 w-32 h-32 bg-gradient-success opacity-10 rounded-full -mr-16 -mt-16"></div>
+            <CardHeader className="flex flex-row items-center justify-between space-y-0 pb-2 relative z-10">
+              <CardTitle className="text-sm font-semibold text-gray-700">Total Revenue</CardTitle>
+              <div className="p-3 rounded-xl bg-gradient-success shadow-md">
+                <span className="text-white font-bold text-lg">$</span>
+              </div>
             </CardHeader>
-            <CardContent>
-              <div className="text-2xl font-bold">$45,231.89</div>
-              <p className="text-xs text-muted-foreground">+20.1% from last month</p>
+            <CardContent className="relative z-10">
+              <div className="text-3xl font-bold bg-gradient-to-r from-success-600 to-success-500 bg-clip-text text-transparent">$45,231.89</div>
+              <p className="text-xs text-success-600 font-medium mt-1">↑ +20.1% from last month</p>
             </CardContent>
           </Card>
         </motion.div>
         <motion.div variants={itemVariants}>
-          <Card className="hover:shadow-lg transition-shadow">
-            <CardHeader className="flex flex-row items-center justify-between space-y-0 pb-2">
-              <CardTitle className="text-sm font-medium">New Bookings</CardTitle>
-              <ShoppingCart className="h-4 w-4 text-muted-foreground" />
+          <Card className="hover:shadow-xl transition-all duration-300 border-0 shadow-lg overflow-hidden relative bg-gradient-to-br from-info-50 to-white">
+            <div className="absolute top-0 right-0 w-32 h-32 bg-gradient-info opacity-10 rounded-full -mr-16 -mt-16"></div>
+            <CardHeader className="flex flex-row items-center justify-between space-y-0 pb-2 relative z-10">
+              <CardTitle className="text-sm font-semibold text-gray-700">New Bookings</CardTitle>
+              <div className="p-3 rounded-xl bg-gradient-info shadow-md">
+                <ShoppingCart className="h-5 w-5 text-info-100" />
+              </div>
             </CardHeader>
-            <CardContent>
-              <div className="text-2xl font-bold">+1,234</div>
-              <p className="text-xs text-muted-foreground">+19% from last month</p>
+            <CardContent className="relative z-10">
+              <div className="text-3xl font-bold bg-gradient-to-r from-info-600 to-info-500 bg-clip-text text-transparent">+1,234</div>
+              <p className="text-xs text-info-600 font-medium mt-1">↑ +19% from last month</p>
             </CardContent>
           </Card>
         </motion.div>
         <motion.div variants={itemVariants} className="lg:col-span-2">
-          <Card className="hover:shadow-lg transition-shadow h-full">
+          <Card className="hover:shadow-xl transition-all duration-300 border-0 shadow-lg h-full bg-gradient-to-br from-white to-secondary-50/30">
             <CardHeader>
-              <CardTitle className="text-sm font-medium">Monthly Signups</CardTitle>
+              <CardTitle className="text-sm font-semibold text-gray-700 flex items-center gap-2">
+                <div className="w-1 h-6 bg-gradient-purple rounded-full"></div>
+                Monthly Signups
+              </CardTitle>
             </CardHeader>
             <CardContent className="h-40">
               <ResponsiveContainer width="100%" height="100%">
                 <BarChart data={monthlySignups} margin={{ top: 10, right: 10, left: -20, bottom: 0 }}>
-                  <CartesianGrid strokeDasharray="3 3" vertical={false} />
-                  <XAxis dataKey="month" fontSize={12} tickLine={false} axisLine={false} />
-                  <YAxis fontSize={12} tickLine={false} axisLine={false} />
-                  <Tooltip cursor={{fill: 'rgba(100,100,100,0.1)'}} />
-                  <Bar dataKey="signups" fill="#16a34a" radius={[4, 4, 0, 0]} />
+                  <CartesianGrid strokeDasharray="3 3" vertical={false} stroke="#E5E7EB" />
+                  <XAxis dataKey="month" fontSize={12} tickLine={false} axisLine={false} stroke="#6B7280" />
+                  <YAxis fontSize={12} tickLine={false} axisLine={false} stroke="#6B7280" />
+                  <Tooltip cursor={{fill: 'rgba(139,92,246,0.1)'}} contentStyle={{ borderRadius: '8px', border: '1px solid #DDD6FE' }} />
+                  <Bar dataKey="signups" fill="#8B5CF6" radius={[8, 8, 0, 0]} />
                 </BarChart>
               </ResponsiveContainer>
             </CardContent>
@@ -83,9 +92,12 @@ const Dashboard = () => {
       </motion.div>
       <motion.div className="grid gap-4 md:grid-cols-2 lg:grid-cols-7" variants={containerVariants} initial="hidden" animate="visible">
         <motion.div variants={itemVariants} className="lg:col-span-4">
-          <Card className="hover:shadow-lg transition-shadow h-full">
+          <Card className="hover:shadow-xl transition-all duration-300 border-0 shadow-lg h-full bg-white">
             <CardHeader>
-              <CardTitle>Recent Provider Registrations</CardTitle>
+              <CardTitle className="flex items-center gap-2 text-gray-800">
+                <div className="w-1 h-6 bg-gradient-primary rounded-full"></div>
+                Recent Provider Registrations
+              </CardTitle>
               <CardDescription>Manage provider accounts and view their status.</CardDescription>
             </CardHeader>
             <CardContent>
@@ -107,13 +119,13 @@ const Dashboard = () => {
                       </TableCell>
                       <TableCell className="hidden md:table-cell">{provider.service}</TableCell>
                       <TableCell>
-                        <Badge variant={provider.status === 'Approved' ? 'default' : provider.status === 'Pending' ? 'secondary' : 'destructive'} className={`capitalize ${provider.status === 'Approved' ? 'bg-green-600 hover:bg-green-600/80' : ''}`}>{provider.status}</Badge>
+                        <Badge variant={provider.status === 'Approved' ? 'default' : provider.status === 'Pending' ? 'secondary' : 'destructive'} className={`capitalize ${provider.status === 'Approved' ? 'bg-success-500 hover:bg-success-600 border-0' : provider.status === 'Pending' ? 'bg-warning-500 text-white hover:bg-warning-600 border-0' : 'bg-destructive-500 hover:bg-destructive-600 border-0'}`}>{provider.status}</Badge>
                       </TableCell>
                       <TableCell className="text-right">
                         <div className="flex items-center justify-end gap-2">
-                          <Button variant="outline" size="icon" className="h-8 w-8 hover:bg-primary/10"><Eye className="h-4 w-4" /></Button>
-                          <Button variant="outline" size="icon" className="h-8 w-8 text-green-500 hover:bg-green-500/10"><BadgeCheck className="h-4 w-4" /></Button>
-                          <Button variant="outline" size="icon" className="h-8 w-8 text-red-500 hover:bg-red-500/10"><BadgeX className="h-4 w-4" /></Button>
+                          <Button variant="outline" size="icon" className="h-8 w-8 hover:bg-info-100 hover:text-info-600 border-info-200"><Eye className="h-4 w-4" /></Button>
+                          <Button variant="outline" size="icon" className="h-8 w-8 text-success-600 hover:bg-success-100 border-success-200"><BadgeCheck className="h-4 w-4" /></Button>
+                          <Button variant="outline" size="icon" className="h-8 w-8 text-destructive-600 hover:bg-destructive-100 border-destructive-200"><BadgeX className="h-4 w-4" /></Button>
                         </div>
                       </TableCell>
                     </motion.tr>
@@ -124,9 +136,12 @@ const Dashboard = () => {
           </Card>
         </motion.div>
         <motion.div variants={itemVariants} className="lg:col-span-3">
-          <Card className="hover:shadow-lg transition-shadow h-full">
+          <Card className="hover:shadow-xl transition-all duration-300 border-0 shadow-lg h-full bg-gradient-to-br from-white to-accent-50/30">
             <CardHeader>
-              <CardTitle>Provider Status Overview</CardTitle>
+              <CardTitle className="flex items-center gap-2 text-gray-800">
+                <div className="w-1 h-6 bg-gradient-warm rounded-full"></div>
+                Provider Status Overview
+              </CardTitle>
               <CardDescription>Distribution of provider account statuses.</CardDescription>
             </CardHeader>
             <CardContent className="h-[300px]">

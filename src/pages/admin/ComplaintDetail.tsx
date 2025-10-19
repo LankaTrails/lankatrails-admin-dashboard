@@ -287,7 +287,7 @@ const ComplaintDetail = () => {
       )}
 
       {/* Hero Header */}
-      <div className="relative w-full rounded-t-2xl overflow-hidden bg-gradient-to-r from-primary/90 to-primary/60 shadow-lg mb-0">
+      <div className="relative w-full rounded-t-2xl overflow-hidden bg-gradient-rose shadow-2xl mb-0">
         <div className="flex items-center gap-4 px-8 py-8">
           <div className="bg-white/80 rounded-full p-4 shadow-lg">
             <AlertCircle className="h-10 w-10 text-primary" />
@@ -316,10 +316,10 @@ const ComplaintDetail = () => {
       </div>
 
       {/* Main Card */}
-      <Card className="shadow-2xl border-2 border-primary/20 bg-white/95 rounded-t-none rounded-b-2xl w-full max-w-5xl mx-auto -mt-6 z-10 relative">
+      <Card className="shadow-2xl border-0 bg-white rounded-t-none rounded-b-2xl w-full max-w-5xl mx-auto -mt-6 z-10 relative">
         <CardContent className="space-y-8 w-full pt-10">
           {/* Meta Info Bar */}
-          <div className="flex flex-wrap gap-6 items-center justify-center bg-primary/5 rounded-lg p-4 border border-primary/10 shadow-inner">
+          <div className="flex flex-wrap gap-6 items-center justify-center bg-gradient-to-br from-destructive-50 to-warning-50/30 rounded-xl p-4 border-2 border-destructive-100 shadow-md">
             <div className="flex items-center gap-2"><FileText className="h-5 w-5 text-primary" /><span className="font-semibold text-gray-700">Complaint ID:</span> {complaint.complaintId}</div>
             <div className="flex items-center gap-2"><Calendar className="h-5 w-5 text-primary" /><span className="font-semibold text-gray-700">Date:</span> {complaint.complaintDateTime}</div>
             {complaint.bookingId && (
@@ -330,9 +330,12 @@ const ComplaintDetail = () => {
 
           {/* Resolution Section */}
           {complaint.investigationStartedDate == "null" && (
-          <div className="bg-blue-50 rounded-lg p-6 border-2 border-blue-200 shadow-inner">
-            <h3 className="text-lg font-semibold mb-4 text-blue-800 flex items-center gap-2">
-              <CheckCircle className="h-5 w-5 text-blue-600" /> Resolution Process
+          <div className="bg-gradient-to-br from-info-50 to-white rounded-xl p-6 border-2 border-info-200 shadow-md">
+            <h3 className="text-lg font-semibold mb-4 text-gray-800 flex items-center gap-2">
+              <div className="p-2 bg-gradient-info rounded-lg">
+                <CheckCircle className="h-5 w-5 text-white" />
+              </div>
+              Resolution Process
             </h3>
             
             <div className="space-y-4">
@@ -364,7 +367,7 @@ const ComplaintDetail = () => {
               {resolutionStatus.inProgress && !resolutionSaved && (
                 <Button 
                   onClick={handleSaveResolution} 
-                  className="mt-4 bg-blue-600 hover:bg-blue-700"
+                  className="mt-4 bg-gradient-info hover:opacity-90 border-0 shadow-md"
                   disabled={isSaving}
                 >
                   {isSaving ? "Saving..." : "Save Resolution Status"}
@@ -389,16 +392,24 @@ const ComplaintDetail = () => {
             <>
               {/* Description */}
               <div>
-                <h3 className="text-lg font-semibold mb-2 text-primary-700 flex items-center gap-2"><FileText className="h-5 w-5 text-primary" /> Description</h3>
-                <p className="text-gray-700 bg-primary/5 rounded-lg p-6 border-l-4 border-primary/40 border border-primary/10 shadow-inner text-lg">
+                <h3 className="text-lg font-semibold mb-3 text-gray-800 flex items-center gap-2">
+                  <div className="p-2 bg-gradient-primary rounded-lg">
+                    <FileText className="h-5 w-5 text-white" />
+                  </div>
+                  Description
+                </h3>
+                <p className="text-gray-700 bg-gradient-to-br from-primary-50 to-white rounded-xl p-6 border-l-4 border-primary-500 border border-primary-100 shadow-md text-base">
                   {complaint.description}
                 </p>
               </div>
 
               {/* Complaint Images Section */}
               <div>
-                <h3 className="text-lg font-semibold mb-4 text-primary-700 flex items-center gap-2">
-                  <ImageIcon className="h-5 w-5 text-primary" /> Images Attached
+                <h3 className="text-lg font-semibold mb-4 text-gray-800 flex items-center gap-2">
+                  <div className="p-2 bg-gradient-secondary rounded-lg">
+                    <ImageIcon className="h-5 w-5 text-white" />
+                  </div>
+                  Images Attached
                 </h3>
                 <div className="grid grid-cols-1 md:grid-cols-2 lg:grid-cols-3 gap-4">
                   {complaintImages.map((image, index) => (
@@ -428,9 +439,12 @@ const ComplaintDetail = () => {
               </div>
 
               {/* Fault Classification Section */}
-              <div className="bg-blue-50 rounded-lg p-6 border-2 border-blue-200 shadow-inner">
-                <h3 className="text-lg font-semibold mb-4 text-blue-800 flex items-center gap-2">
-                  <CheckCircle className="h-5 w-5 text-blue-600" /> Fault Classification
+              <div className="bg-gradient-to-br from-warning-50 to-white rounded-xl p-6 border-2 border-warning-200 shadow-md">
+                <h3 className="text-lg font-semibold mb-4 text-gray-800 flex items-center gap-2">
+                  <div className="p-2 bg-gradient-warm rounded-lg">
+                    <CheckCircle className="h-5 w-5 text-white" />
+                  </div>
+                  Fault Classification
                 </h3>
                 
                 <div className="space-y-4">
@@ -455,7 +469,7 @@ const ComplaintDetail = () => {
                   {!faultClassificationSaved && (
                     <Button 
                       onClick={handleSaveFaultClassification} 
-                      className="mt-4 bg-blue-600 hover:bg-blue-700"
+                      className="mt-4 bg-gradient-warm hover:opacity-90 border-0 shadow-md"
                       disabled={!resolutionStatus.faultType || isSavingFault}
                     >
                       {isSavingFault ? "Saving..." : "Save Fault Classification"}
@@ -473,9 +487,11 @@ const ComplaintDetail = () => {
 
               {/* Refund Section - Only shown after fault classification is saved and NOT "REJECT" */}
               {faultClassificationSaved && resolutionStatus.faultType !== "REJECT" && (
-                <div className="bg-green-50 rounded-lg p-6 border-2 border-green-200 shadow-inner">
-                  <h3 className="text-lg font-semibold mb-4 text-green-800 flex items-center gap-2">
-                    <DollarSign className="h-5 w-5 text-green-600" /> 
+                <div className="bg-gradient-to-br from-success-50 to-white rounded-xl p-6 border-2 border-success-200 shadow-md">
+                  <h3 className="text-lg font-semibold mb-4 text-gray-800 flex items-center gap-2">
+                    <div className="p-2 bg-gradient-success rounded-lg">
+                      <DollarSign className="h-5 w-5 text-white" />
+                    </div>
                     Refund Process
                   </h3>
                   
@@ -508,7 +524,7 @@ const ComplaintDetail = () => {
                     {!refundProcessed && (
                       <Button 
                         onClick={handleProcessRefund} 
-                        className="mt-4 bg-green-600 hover:bg-green-700"
+                        className="mt-4 bg-gradient-success hover:opacity-90 border-0 shadow-md"
                         disabled={!refundAmount || !refundReason}
                       >
                         Process Refund
@@ -516,7 +532,7 @@ const ComplaintDetail = () => {
                     )}
 
                     {refundProcessed && (
-                      <div className="mt-4 p-3 bg-green-100 text-green-800 rounded-md border border-green-200">
+                      <div className="mt-4 p-3 bg-success-100 text-success-800 rounded-md border border-success-200">
                         <CheckCircle className="h-5 w-5 inline mr-2" />
                         Refund of ${refundAmount} processed successfully.
                       </div>
@@ -527,8 +543,13 @@ const ComplaintDetail = () => {
 
               {/* Messaging Section */}
               <div className="mt-8">
-                <h3 className="text-lg font-semibold mb-2 text-primary-700 flex items-center gap-2"><MessageSquare className="h-5 w-5 text-primary" /> Replies</h3>
-                <div className="bg-primary/5 rounded-lg p-4 border border-primary/10 shadow-inner">
+                <h3 className="text-lg font-semibold mb-3 text-gray-800 flex items-center gap-2">
+                  <div className="p-2 bg-gradient-secondary rounded-lg">
+                    <MessageSquare className="h-5 w-5 text-white" />
+                  </div>
+                  Replies
+                </h3>
+                <div className="bg-gradient-to-br from-secondary-50 to-white rounded-xl p-4 border-2 border-secondary-100 shadow-md">
                   <div className="space-y-4 mb-6">
                     {adminReplies.length === 0 && <div className="text-gray-500">No replies yet.</div>}
                     {adminReplies.map((r, idx) => (
