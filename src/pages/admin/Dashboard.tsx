@@ -39,22 +39,22 @@ const Dashboard = () => {
     <>
       <motion.div className="grid gap-4 md:grid-cols-2 md:gap-8 lg:grid-cols-4" variants={containerVariants} initial="hidden" animate="visible">
         <motion.div variants={itemVariants}>
-          <Card className="hover:shadow-xl transition-all duration-300 border-0 shadow-lg overflow-hidden relative bg-gradient-to-br from-success-50 to-white">
+          <Card className="hover:shadow-xl transition-all duration-300 border-0 shadow-lg overflow-hidden relative bg-gradient-to-br from-success-50 to-white h-full">
             <div className="absolute top-0 right-0 w-32 h-32 bg-gradient-success opacity-10 rounded-full -mr-16 -mt-16"></div>
             <CardHeader className="flex flex-row items-center justify-between space-y-0 pb-2 relative z-10">
               <CardTitle className="text-sm font-semibold text-gray-700">Total Revenue</CardTitle>
               <div className="p-3 rounded-xl bg-gradient-success shadow-md">
-                <span className="text-white font-bold text-lg">$</span>
+                <span className="text-white font-bold text-sm">LKR</span>
               </div>
             </CardHeader>
             <CardContent className="relative z-10">
-              <div className="text-3xl font-bold bg-gradient-to-r from-success-600 to-success-500 bg-clip-text text-transparent">$45,231.89</div>
+              <div className="text-3xl font-bold bg-gradient-to-r from-success-600 to-success-500 bg-clip-text text-transparent">LKR 4,523,189</div>
               <p className="text-xs text-success-600 font-medium mt-1">↑ +20.1% from last month</p>
             </CardContent>
           </Card>
         </motion.div>
         <motion.div variants={itemVariants}>
-          <Card className="hover:shadow-xl transition-all duration-300 border-0 shadow-lg overflow-hidden relative bg-gradient-to-br from-info-50 to-white">
+          <Card className="hover:shadow-xl transition-all duration-300 border-0 shadow-lg overflow-hidden relative bg-gradient-to-br from-info-50 to-white h-full">
             <div className="absolute top-0 right-0 w-32 h-32 bg-gradient-info opacity-10 rounded-full -mr-16 -mt-16"></div>
             <CardHeader className="flex flex-row items-center justify-between space-y-0 pb-2 relative z-10">
               <CardTitle className="text-sm font-semibold text-gray-700">New Bookings</CardTitle>

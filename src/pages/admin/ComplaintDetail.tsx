@@ -243,7 +243,7 @@ const ComplaintDetail = () => {
     console.log("Processing refund:", { amount: refundAmount, reason: refundReason });
     
     setRefundProcessed(true);
-    alert(`Refund of $${refundAmount} processed successfully.`);
+    alert(`Refund of LKR ${refundAmount} processed successfully.`);
   };
 
   if (isLoading) {
@@ -534,7 +534,7 @@ const ComplaintDetail = () => {
                     {refundProcessed && (
                       <div className="mt-4 p-3 bg-success-100 text-success-800 rounded-md border border-success-200">
                         <CheckCircle className="h-5 w-5 inline mr-2" />
-                        Refund of ${refundAmount} processed successfully.
+                        Refund of LKR {refundAmount} processed successfully.
                       </div>
                     )}
                   </div>

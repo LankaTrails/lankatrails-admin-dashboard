@@ -21,7 +21,7 @@ const AdminLayout = () => {
             <div className="px-4 mb-6">
               <div className="bg-gradient-primary rounded-xl p-4 shadow-md">
                 <h2 className="text-white font-bold text-lg">LankaTrails</h2>
-                <p className="text-primary-100 text-sm">bAdmin Dashoard</p>
+                <p className="text-primary-100 text-sm"></p>
               </div>
             </div>
             <nav className="grid items-start px-2 text-sm font-medium lg:px-4 gap-1">

@@ -124,7 +124,7 @@ const Analytics = () => {
                   <LineChart data={revenueData} margin={{ top: 5, right: 20, left: -10, bottom: 5 }}>
                     <CartesianGrid strokeDasharray="3 3" vertical={false} stroke="#E5E7EB" />
                     <XAxis dataKey="month" fontSize={12} tickLine={false} axisLine={false} stroke="#6B7280" />
-                    <YAxis fontSize={12} tickLine={false} axisLine={false} tickFormatter={(value) => `$${value / 1000}k`} stroke="#6B7280" />
+                    <YAxis fontSize={12} tickLine={false} axisLine={false} tickFormatter={(value) => `LKR ${value}k`} stroke="#6B7280" />
                     <Tooltip cursor={{fill: 'rgba(16,185,129,0.1)'}} contentStyle={{ borderRadius: '8px', border: '1px solid #D1FAE5' }} />
                     <Legend />
                     <Line type="monotone" dataKey="revenue" stroke="#10B981" strokeWidth={3} dot={{ r: 5, fill: '#10B981', strokeWidth: 2, stroke: '#fff' }} activeDot={{ r: 7, fill: '#059669' }} />
