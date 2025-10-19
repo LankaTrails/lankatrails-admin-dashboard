@@ -1,30 +1,41 @@
-import { useState } from 'react';
+import { useState, useEffect } from 'react';
 import { Badge } from "@/components/ui/badge";
 import { Button } from "@/components/ui/button";
 import { Card, CardContent, CardDescription, CardHeader, CardTitle } from "@/components/ui/card";
 import { DropdownMenu, DropdownMenuContent, DropdownMenuCheckboxItem, DropdownMenuLabel, DropdownMenuSeparator, DropdownMenuTrigger } from "@/components/ui/dropdown-menu";
 import { Input } from "@/components/ui/input";
 import { Table, TableBody, TableCell, TableHead, TableHeader, TableRow } from "@/components/ui/table";
-import { BadgeCheck, BadgeX, Eye, ListFilter, Search } from 'lucide-react';
+import { BadgeCheck, BadgeX, Eye, ListFilter, Search, CreditCard, Loader2 } from 'lucide-react';
 import { motion } from 'framer-motion';
 import { useNavigate } from "react-router-dom";
+import { Tooltip, TooltipContent, TooltipProvider, TooltipTrigger } from "@/components/ui/tooltip";
+import { getAllProviders, ProviderBasicInfo } from '@/services/providerService';
 
-// Mock data - in a real app, this would come from an API
-const allProviders = [
-    { name: "Ella Spice Garden", owner: "Nimal Perera", service: "Activities & Experiences", location: "Ella, Uva", status: "Approved", date: "2023-06-23" },
-    { name: "Kandy View Hotel", owner: "Sunil Jayasuriya", service: "Accommodation", location: "Kandy, Central", status: "Pending", date: "2023-06-24" },
-    { name: "Galle Fort Tours", owner: "Anura Bandara", service: "Tour Guide", location: "Galle, Southern", status: "Approved", date: "2023-06-25" },
-    { name: "Colombo Cabs", owner: "Saman Kumara", service: "Transport Services", location: "Colombo, Western", status: "Rejected", date: "2023-06-26" },
-    { name: "Mirissa Beach Restaurant", owner: "Kamal Silva", service: "Food & Restaurants", location: "Mirissa, Southern", status: "Pending", date: "2023-06-27" },
-    { name: "Sigiriya Adventures", owner: "Kamala Devi", service: "Activities & Experiences", location: "Sigiriya, Central", status: "Approved", date: "2023-06-28" },
-    { name: "Nuwara Eliya Grand Hotel", owner: "Priya Kumar", service: "Accommodation", location: "Nuwara Eliya, Central", status: "Approved", date: "2023-07-01" },
-    { name: "Yala Safari Jeeps", owner: "Ajith Perera", service: "Transport Services", location: "Yala, Southern", status: "Pending", date: "2023-07-02" },
-];
 
 const Providers = () => {
     const [searchTerm, setSearchTerm] = useState('');
-    const [statusFilters, setStatusFilters] = useState({ Approved: true, Pending: true, Rejected: true });
+    const [statusFilters, setStatusFilters] = useState({ APPROVED: true, PENDING: true, REJECTED: true });
+    const [allProviders, setAllProviders] = useState<ProviderBasicInfo[]>([]);
+    const [isLoading, setIsLoading] = useState(true);
+    const [error, setError] = useState<string | null>(null);
     const navigate = useNavigate();
+
+    useEffect(() => {
+        loadProviders();
+    }, []);
+
+    const loadProviders = async () => {
+        try {
+            setIsLoading(true);
+            setError(null);
+            const providers = await getAllProviders();
+            setAllProviders(providers);
+        } catch (error: any) {
+            setError(error.userMessage || error.message || 'Failed to load providers');
+        } finally {
+            setIsLoading(false);
+        }
+    };
 
     const handleStatusChange = (status: string) => {
         setStatusFilters(prev => ({ ...prev, [status]: !prev[status] }));
@@ -33,9 +44,9 @@ const Providers = () => {
     const filteredProviders = allProviders
         .filter(p => statusFilters[p.status as keyof typeof statusFilters])
         .filter(p =>
-            p.name.toLowerCase().includes(searchTerm.toLowerCase()) ||
-            p.owner.toLowerCase().includes(searchTerm.toLowerCase()) ||
-            p.service.toLowerCase().includes(searchTerm.toLowerCase())
+            p.businessName.toLowerCase().includes(searchTerm.toLowerCase()) ||
+            p.email.toLowerCase().includes(searchTerm.toLowerCase()) ||
+            p.businessType.toLowerCase().includes(searchTerm.toLowerCase())
         );
 
     const itemVariants = { hidden: { y: 20, opacity: 0 }, visible: { y: 0, opacity: 1, transition: { duration: 0.5 } } };
@@ -69,12 +80,23 @@ const Providers = () => {
                             <DropdownMenuContent align="end">
                                 <DropdownMenuLabel>Filter by status</DropdownMenuLabel>
                                 <DropdownMenuSeparator />
-                                <DropdownMenuCheckboxItem checked={statusFilters.Approved} onCheckedChange={() => handleStatusChange('Approved')}>Approved</DropdownMenuCheckboxItem>
-                                <DropdownMenuCheckboxItem checked={statusFilters.Pending} onCheckedChange={() => handleStatusChange('Pending')}>Pending</DropdownMenuCheckboxItem>
-                                <DropdownMenuCheckboxItem checked={statusFilters.Rejected} onCheckedChange={() => handleStatusChange('Rejected')}>Rejected</DropdownMenuCheckboxItem>
+                                <DropdownMenuCheckboxItem checked={statusFilters.APPROVED} onCheckedChange={() => handleStatusChange('APPROVED')}>Approved</DropdownMenuCheckboxItem>
+                                <DropdownMenuCheckboxItem checked={statusFilters.PENDING} onCheckedChange={() => handleStatusChange('PENDING')}>Pending</DropdownMenuCheckboxItem>
+                                <DropdownMenuCheckboxItem checked={statusFilters.REJECTED} onCheckedChange={() => handleStatusChange('REJECTED')}>Rejected</DropdownMenuCheckboxItem>
                             </DropdownMenuContent>
                         </DropdownMenu>
                     </div>
+                    {isLoading ? (
+                        <div className="flex items-center justify-center py-12">
+                            <Loader2 className="h-8 w-8 animate-spin text-primary" />
+                            <span className="ml-3 text-gray-600">Loading providers...</span>
+                        </div>
+                    ) : error ? (
+                        <div className="text-center py-12">
+                            <p className="text-red-600 mb-4">{error}</p>
+                            <Button onClick={loadProviders}>Retry</Button>
+                        </div>
+                    ) : (
                     <motion.div initial="hidden" animate="visible" variants={{ visible: { transition: { staggerChildren: 0.05 } } }}>
                         <Table>
                             <TableHeader>
@@ -84,32 +106,54 @@ const Providers = () => {
                                     <TableHead>Status</TableHead>
                                     <TableHead className="hidden lg:table-cell">Location</TableHead>
                                     <TableHead className="hidden lg:table-cell">Registered On</TableHead>
+                                    <TableHead className="text-center">Payment</TableHead>
                                     <TableHead className="text-right">Actions</TableHead>
                                 </TableRow>
                             </TableHeader>
                             <TableBody>
-                                {filteredProviders.map((provider) => (
-                                    <motion.tr key={provider.name} variants={itemVariants} className="hover:bg-muted/50 transition-colors">
-                                        <TableCell>
-                                            <div className="font-medium">{provider.name}</div>
-                                            <div className="text-sm text-muted-foreground">{provider.owner}</div>
+                                {filteredProviders.length === 0 ? (
+                                    <TableRow>
+                                        <TableCell colSpan={7} className="text-center py-8 text-gray-500">
+                                            No providers found
                                         </TableCell>
-                                        <TableCell className="hidden md:table-cell">{provider.service}</TableCell>
+                                    </TableRow>
+                                ) : (
+                                    filteredProviders.map((provider) => (
+                                    <motion.tr key={provider.email} variants={itemVariants} className="hover:bg-muted/50 transition-colors">
                                         <TableCell>
-                                            <Badge variant={provider.status === 'Approved' ? 'default' : provider.status === 'Pending' ? 'secondary' : 'destructive'} className={`capitalize ${provider.status === 'Approved' ? 'bg-green-600 hover:bg-green-600/80' : ''}`}>{provider.status}</Badge>
+                                            <div className="font-medium">{provider.businessName}</div>
+                                            <div className="text-sm text-muted-foreground">{provider.email}</div>
                                         </TableCell>
-                                        <TableCell className="hidden lg:table-cell">{provider.location}</TableCell>
-                                        <TableCell className="hidden lg:table-cell">{provider.date}</TableCell>
+                                        <TableCell className="hidden md:table-cell">{provider.businessType}</TableCell>
+                                        <TableCell>
+                                            <Badge variant={provider.status === 'APPROVED' ? 'default' : provider.status === 'PENDING' ? 'secondary' : 'destructive'} className={`capitalize ${provider.status === 'APPROVED' ? 'bg-green-600 hover:bg-green-600/80' : ''}`}>{provider.status}</Badge>
+                                        </TableCell>
+                                        <TableCell className="hidden lg:table-cell">{provider.city || 'N/A'}</TableCell>
+                                        <TableCell className="hidden lg:table-cell">{provider.businessRegistrationNumber}</TableCell>
+                                        <TableCell className="text-center">
+                                            <TooltipProvider>
+                                                <Tooltip>
+                                                    <TooltipTrigger>
+                                                        <CreditCard className="h-5 w-5 text-gray-400 mx-auto" />
+                                                    </TooltipTrigger>
+                                                    <TooltipContent>
+                                                        <p>View payment account details in provider profile</p>
+                                                    </TooltipContent>
+                                                </Tooltip>
+                                            </TooltipProvider>
+                                        </TableCell>
                                         <TableCell className="text-right">
                                             <div className="flex items-center justify-end gap-2">
-                                                <Button variant="outline" size="icon" className="h-8 w-8 hover:bg-primary/10" onClick={() => navigate(`/admin/providers/${encodeURIComponent(provider.name)}`)}><Eye className="h-4 w-4" /></Button>
+                                                <Button variant="outline" size="icon" className="h-8 w-8 hover:bg-primary/10" onClick={() => navigate(`/admin/providers/${provider.userId || encodeURIComponent(provider.email)}`)}><Eye className="h-4 w-4" /></Button>
                                             </div>
                                         </TableCell>
                                     </motion.tr>
-                                ))}
+                                ))
+                                )}
                             </TableBody>
                         </Table>
                     </motion.div>
+                    )}
                 </CardContent>
             </Card>
         </motion.div>
