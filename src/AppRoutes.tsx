@@ -10,6 +10,8 @@ import Analytics from './pages/admin/Analytics';
 import Complaints from './pages/admin/Complaints';
 import ComplaintDetail from './pages/admin/ComplaintDetail';
 import ProviderDetail from './pages/admin/ProviderDetail';
+import ProviderDashboard from './pages/ProviderDashboard';
+import ProviderOnboarding from './pages/ProviderOnboarding';
 import ProtectedRoute from "./components/ProtectedRoutes";
 
 const AppRoutes = () =>{
@@ -51,6 +53,23 @@ const AppRoutes = () =>{
             <Route path="complaints/:id" element={<ComplaintDetail />} />
             <Route path="analytics" element={<Analytics />} />
           </Route>
+
+          <Route 
+            path="/provider/dashboard" 
+            element={
+              <ProtectedRoute>
+                <ProviderDashboard />
+              </ProtectedRoute>
+            } 
+          />
+          <Route 
+            path="/provider/onboarding" 
+            element={
+              <ProtectedRoute>
+                <ProviderOnboarding />
+              </ProtectedRoute>
+            } 
+          />
         </Routes> 
     );
 };

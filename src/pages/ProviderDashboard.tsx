@@ -1,8 +1,10 @@
-import { useState } from 'react';
+import { useState, useEffect } from 'react';
+import { useNavigate } from 'react-router-dom';
 import { Button } from '@/components/ui/button';
 import { Card, CardContent, CardDescription, CardHeader, CardTitle } from '@/components/ui/card';
 import { Tabs, TabsContent, TabsList, TabsTrigger } from '@/components/ui/tabs';
 import { Badge } from '@/components/ui/badge';
+import { Alert, AlertDescription } from '@/components/ui/alert';
 import Header from '@/components/Header';
 import { 
   Calendar,
@@ -15,11 +17,41 @@ import {
   DollarSign,
   Users,
   Clock,
-  CheckCircle
+  CheckCircle,
+  CreditCard,
+  AlertCircle
 } from 'lucide-react';
+import { getStripeAccountStatus } from '@/services/providerOnboarding';
 
 const ProviderDashboard = () => {
+  const navigate = useNavigate();
   const [activeTab, setActiveTab] = useState('overview');
+  const [stripeAccountStatus, setStripeAccountStatus] = useState<any>(null);
+  const [isCheckingStatus, setIsCheckingStatus] = useState(true);
+
+  useEffect(() => {
+    checkStripeStatus();
+  }, []);
+
+  const checkStripeStatus = async () => {
+    try {
+      const status = await getStripeAccountStatus();
+      setStripeAccountStatus(status);
+    } catch (error) {
+      // If no account exists, that's okay - we'll show the onboarding prompt
+      console.log('No Stripe account set up yet');
+    } finally {
+      setIsCheckingStatus(false);
+    }
+  };
+
+  const handleSetupPayments = () => {
+    navigate('/provider/onboarding');
+  };
+
+  const isFullyOnboarded = stripeAccountStatus?.details_submitted && 
+                          stripeAccountStatus?.charges_enabled && 
+                          stripeAccountStatus?.payouts_enabled;
 
   const stats = [
     {
@@ -115,6 +147,45 @@ const ProviderDashboard = () => {
           <h1 className="text-3xl font-bold text-gray-900 mb-2">Provider Dashboard</h1>
           <p className="text-gray-600">Manage your services and connect with travelers</p>
         </div>
+
+        {/* Onboarding Alert */}
+        {!isCheckingStatus && !isFullyOnboarded && (
+          <Alert className="mb-6 border-yellow-200 bg-yellow-50">
+            <div className="flex items-start gap-4">
+              <CreditCard className="h-5 w-5 text-yellow-600 mt-0.5" />
+              <div className="flex-1">
+                <h3 className="font-semibold text-yellow-900 mb-1">
+                  Payment Account Setup Required
+                </h3>
+                <AlertDescription className="text-yellow-800 mb-3">
+                  {stripeAccountStatus 
+                    ? 'Your payment account setup is incomplete. Complete the onboarding to start receiving payments from bookings.'
+                    : 'Set up your payment account to start receiving payments from bookings.'
+                  }
+                </AlertDescription>
+                <Button 
+                  onClick={handleSetupPayments}
+                  size="sm"
+                  className="bg-yellow-600 hover:bg-yellow-700 text-white"
+                >
+                  {stripeAccountStatus ? 'Complete Setup' : 'Set Up Payments'}
+                </Button>
+              </div>
+            </div>
+          </Alert>
+        )}
+
+        {/* Success Alert */}
+        {!isCheckingStatus && isFullyOnboarded && (
+          <Alert className="mb-6 border-green-200 bg-green-50">
+            <div className="flex items-center gap-3">
+              <CheckCircle className="h-5 w-5 text-green-600" />
+              <AlertDescription className="text-green-800">
+                Your payment account is fully set up and ready to receive payments!
+              </AlertDescription>
+            </div>
+          </Alert>
+        )}
 
         {/* Stats Cards */}
         <div className="grid grid-cols-1 md:grid-cols-4 gap-6 mb-8">
