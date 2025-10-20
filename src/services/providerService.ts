@@ -10,6 +10,42 @@ export interface ProviderBasicInfo {
   city: string;
 }
 
+// Contact Person DTO to match backend
+export interface ContactPersonDTO {
+  name: string;
+  email: string;
+  phoneNumber: string;
+  position: string;
+  identityDocumentUrl: string;
+}
+
+// License DTO to match backend structure
+export interface LicenseDTO {
+  licenseId: number;
+  licenseNumber: string;
+  expiryDate: string;
+  licenseUrl: string;
+  category: string;
+  providerId: number;
+  status: 'PENDING' | 'APPROVED' | 'REJECTED';
+  businessName: string;
+  categoryName: string;
+}
+
+// Approve License DTO structure (contains lists of licenses by category)
+export interface ApproveLicenseDTO {
+  accommodation: LicenseDTO[] | null;
+  activity: LicenseDTO[] | null;
+  transport: LicenseDTO[] | null;
+  tourGuide: LicenseDTO[] | null;
+  foodBeverage: LicenseDTO[] | null;
+}
+
+// Approve License Response wrapper
+export interface ApproveLicenseResponse {
+  content: ApproveLicenseDTO;
+}
+
 // Helper function to extract provider ID from response
 // Backend ProviderInfoDTO uses providerId field (Long type)
 export function extractProviderId(provider: any): number | null {
@@ -27,7 +63,8 @@ export interface ProviderDetailInfo {
   businessRegistrationUrl: string;
   businessType: string;
   coverImgUrl: string;
-  pendingLicenses?: any;
+  pendingLicenses: ApproveLicenseResponse | null;
+  contactPerson: ContactPersonDTO | null;
 }
 
 /**

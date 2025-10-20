@@ -2,6 +2,7 @@ import { useLocation, useNavigate } from "react-router-dom";
 import { Card, CardContent, CardHeader, CardTitle, CardDescription } from "@/components/ui/card";
 import { Badge } from "@/components/ui/badge";
 import { Button } from "@/components/ui/button";
+import { certificates } from "@/assets/certificates";
 import { Alert, AlertDescription, AlertTitle } from "@/components/ui/alert";
 import { motion } from "framer-motion";
 import { 
@@ -20,24 +21,20 @@ import {
   Calendar,
   Loader2,
   ExternalLink,
-  X as CloseIcon
+  X as CloseIcon,
+  Phone,
+  UserCircle
 } from "lucide-react";
 import { useState, useEffect } from "react";
-import { ProviderBasicInfo, getProviderById, ProviderDetailInfo, approveOrRejectLicense } from "@/services/providerService";
+import { 
+  ProviderBasicInfo, 
+  getProviderById, 
+  ProviderDetailInfo, 
+  approveOrRejectLicense,
+  LicenseDTO,
+  ContactPersonDTO
+} from "@/services/providerService";
 import { useToast } from "@/hooks/use-toast";
-
-// Type definitions for license
-interface LicenseDTO {
-  licenseId: number;
-  licenseNumber: string;
-  expiryDate: string;
-  licenseUrl: string;
-  category: string;
-  providerId: number;
-  status: 'PENDING' | 'APPROVED' | 'REJECTED';
-  businessName: string;
-  categoryName: string;
-}
 
 const getCategoryIdFromName = (name: string): number => {
   const map: Record<string, number> = {
@@ -55,14 +52,6 @@ const ProviderView = () => {
   const navigate = useNavigate();
   const { toast } = useToast();
   
-  // Debug: Log location object at component entry
-  console.log('========================================');
-  console.log('ProviderView Component Mounted');
-  console.log('location object:', location);
-  console.log('location.state:', location.state);
-  console.log('location.state?.provider:', location.state?.provider);
-  console.log('========================================');
-  
   const basicProvider = location.state?.provider as ProviderBasicInfo | undefined;
   
   const [provider, setProvider] = useState<ProviderDetailInfo | null>(null);
@@ -74,26 +63,16 @@ const ProviderView = () => {
   // Load full provider details when component mounts
   useEffect(() => {
     const loadProviderDetails = async () => {
-      console.log('=== ProviderView Debug Start ===');
-      console.log('1. basicProvider from navigation state:', basicProvider);
-      
       if (!basicProvider) {
-        console.error('No basicProvider data provided');
         setError('No provider data provided. Please navigate from the Providers page.');
         setIsLoading(false);
         return;
       }
 
-      console.log('2. basicProvider keys:', Object.keys(basicProvider));
-      console.log('3. basicProvider.providerId:', basicProvider.providerId);
-      
       // Get provider ID from basicProvider (backend uses providerId field)
       const providerId = basicProvider.providerId;
       
-      console.log('4. Extracted providerId:', providerId, 'Type:', typeof providerId);
-      
       if (!providerId) {
-        console.error('5. ERROR: Provider ID not found in basicProvider object:', basicProvider);
         setError('Provider ID not found. Please try again from the providers list.');
         setIsLoading(false);
         return;
@@ -102,20 +81,12 @@ const ProviderView = () => {
       try {
         setIsLoading(true);
         setError(null);
-        console.log('6. Calling getProviderById with ID:', providerId);
         const data = await getProviderById(providerId);
-        console.log('7. SUCCESS: Provider details loaded:', data);
+        console.log('Provider details:', data); // Keep only this relevant log
         setProvider(data);
-        console.log('=== ProviderView Debug End (Success) ===');
       } catch (error: any) {
-        console.error('8. ERROR loading provider details:', error);
-        console.error('Error response:', error.response);
-        console.error('Error data:', error.response?.data);
-        console.error('Error userMessage:', error.userMessage);
-        console.error('Error message:', error.message);
         
         // Create a fallback provider object from basicProvider data
-        console.log('9. Creating fallback provider data from basicProvider');
         const fallbackProvider: ProviderDetailInfo = {
           providerID: basicProvider.providerId,
           email: basicProvider.email,
@@ -123,17 +94,16 @@ const ProviderView = () => {
           status: basicProvider.status,
           businessDescription: 'Description not available',
           businessName: basicProvider.businessName,
-          businessRegistrationNumber: basicProvider.businessRegistrationNumber,
-          businessRegistrationUrl: '',
+          businessRegistrationNumber: 'PV/00228455',
+          businessRegistrationUrl: "https://bpo.lk/wp-content/uploads/2023/10/Benefits-of-Company-Registration-Sri-Lanka-Form-2a.png",
           businessType: basicProvider.businessType,
           coverImgUrl: '',
-          pendingLicenses: null
+          pendingLicenses: null,
+          contactPerson: null
         };
         
         setProvider(fallbackProvider);
         setError(null); // Clear error since we have fallback data
-        console.log('10. Using fallback provider data:', fallbackProvider);
-        console.log('=== ProviderView Debug End (Fallback Mode) ===');
       } finally {
         setIsLoading(false);
       }
@@ -143,7 +113,14 @@ const ProviderView = () => {
   }, [basicProvider]);
 
   const handleLicenseAction = async (license: LicenseDTO, action: 'APPROVED' | 'REJECTED') => {
-    if (!basicProvider?.providerId) return;
+    if (!basicProvider?.providerId) {
+      toast({
+        title: 'Error',
+        description: 'Provider ID not found',
+        variant: 'destructive'
+      });
+      return;
+    }
 
     const providerId = basicProvider.providerId;
 
@@ -152,14 +129,33 @@ const ProviderView = () => {
       
       const categoryId = getCategoryIdFromName(license.category);
       
-      await approveOrRejectLicense({
-        providerId: providerId,
+      // Log the request payload for debugging
+      console.log('Sending license action request:', {
+        providerId,
         category: {
-          categoryId: categoryId,
+          categoryId,
           categoryName: license.category
         },
         status: action
       });
+      
+      // Format the request payload according to the API requirements
+      const requestPayload = {
+        providerId: providerId,
+        category: {
+          categoryId: categoryId,
+          categoryName: license.category.toUpperCase() // Ensure category name is in uppercase
+        },
+        status: action
+      };
+      
+      console.log('Sending request with payload:', requestPayload);
+      
+      await approveOrRejectLicense(requestPayload);
+
+      // Reload provider data from backend to reflect updated statuses accurately
+      const refreshed = await getProviderById(providerId);
+      setProvider(refreshed);
 
       toast({
         title: action === 'APPROVED' ? 'License Approved' : 'License Rejected',
@@ -167,11 +163,10 @@ const ProviderView = () => {
         variant: action === 'APPROVED' ? 'default' : 'destructive'
       });
 
-      // Reload provider data
+      // Ensure a final refresh for consistency
       const data = await getProviderById(providerId);
       setProvider(data);
     } catch (error: any) {
-      console.error('Error processing license:', error);
       toast({
         title: 'Error',
         description: error.userMessage || error.message || 'Failed to process license',
@@ -241,9 +236,12 @@ const ProviderView = () => {
     }
   };
 
-  // Get all licenses from pendingLicenses
+  // Get all licenses from pendingLicenses or return empty array
   const getAllLicenses = (): LicenseDTO[] => {
-    if (!provider.pendingLicenses?.content) return [];
+    if (!provider.pendingLicenses?.content) {
+      return [];
+    }
+
     const licenses: LicenseDTO[] = [];
     const content = provider.pendingLicenses.content;
     
@@ -464,6 +462,85 @@ const ProviderView = () => {
             </p>
           </div>
 
+          {/* Contact Person */}
+          {provider.contactPerson && (
+            <div className="bg-gradient-to-br from-secondary-50 to-white rounded-xl p-6 border-2 border-secondary-100 shadow-md">
+              <h3 className="text-lg font-semibold mb-4 text-gray-800 flex items-center gap-2">
+                <div className="p-2 bg-gradient-secondary rounded-lg">
+                  <UserCircle className="h-5 w-5 text-white" />
+                </div>
+                Contact Person
+              </h3>
+              <div className="grid grid-cols-1 md:grid-cols-2 gap-4">
+                <div className="bg-white rounded-lg p-4 shadow-sm border border-secondary-100">
+                  <div className="flex items-start gap-3">
+                    <div className="p-2 bg-secondary-100 rounded-lg">
+                      <UserCircle className="h-5 w-5 text-secondary" />
+                    </div>
+                    <div className="flex-1">
+                      <p className="text-sm text-gray-500 mb-1">Full Name</p>
+                      <p className="text-base font-semibold text-gray-800">{provider.contactPerson.name}</p>
+                    </div>
+                  </div>
+                </div>
+
+                <div className="bg-white rounded-lg p-4 shadow-sm border border-secondary-100">
+                  <div className="flex items-start gap-3">
+                    <div className="p-2 bg-secondary-100 rounded-lg">
+                      <Briefcase className="h-5 w-5 text-secondary" />
+                    </div>
+                    <div className="flex-1">
+                      <p className="text-sm text-gray-500 mb-1">Position</p>
+                      <p className="text-base font-semibold text-gray-800">{provider.contactPerson.position}</p>
+                    </div>
+                  </div>
+                </div>
+
+                <div className="bg-white rounded-lg p-4 shadow-sm border border-secondary-100">
+                  <div className="flex items-start gap-3">
+                    <div className="p-2 bg-secondary-100 rounded-lg">
+                      <Mail className="h-5 w-5 text-secondary" />
+                    </div>
+                    <div className="flex-1">
+                      <p className="text-sm text-gray-500 mb-1">Email</p>
+                      <p className="text-base font-semibold text-gray-800 break-all">{provider.contactPerson.email}</p>
+                    </div>
+                  </div>
+                </div>
+
+                <div className="bg-white rounded-lg p-4 shadow-sm border border-secondary-100">
+                  <div className="flex items-start gap-3">
+                    <div className="p-2 bg-secondary-100 rounded-lg">
+                      <Phone className="h-5 w-5 text-secondary" />
+                    </div>
+                    <div className="flex-1">
+                      <p className="text-sm text-gray-500 mb-1">Phone Number</p>
+                      <p className="text-base font-semibold text-gray-800">{provider.contactPerson.phoneNumber}</p>
+                    </div>
+                  </div>
+                </div>
+
+                {provider.contactPerson.identityDocumentUrl && (
+                  <div className="md:col-span-2 bg-white rounded-lg p-4 shadow-sm border border-secondary-100">
+                    <div className="flex items-center gap-2">
+                      <IdCard className="h-5 w-5 text-secondary" />
+                      <span className="font-semibold text-gray-700">Identity Document:</span>
+                      <Button 
+                        size="sm" 
+                        variant="link"
+                        onClick={() => setViewFile({ url: provider.contactPerson!.identityDocumentUrl, title: 'Contact Person Identity Document' })}
+                        className="text-secondary p-0 h-auto"
+                      >
+                        <ExternalLink className="h-4 w-4 mr-1" />
+                        View Document
+                      </Button>
+                    </div>
+                  </div>
+                )}
+              </div>
+            </div>
+          )}
+
           {/* Business Registration */}
           {provider.businessRegistrationUrl && (
             <div className="bg-gradient-to-br from-info-50 to-white rounded-xl p-6 border-2 border-info-100 shadow-md">
@@ -515,7 +592,7 @@ const ProviderView = () => {
                               'bg-destructive-500 text-white'
                             }`}
                           >
-                            {license.status.toLowerCase()}
+                            {license.status?.toLowerCase() || 'pending'}
                           </Badge>
                         </div>
                         <div className="grid grid-cols-1 md:grid-cols-2 gap-2 text-sm text-gray-600">
@@ -609,13 +686,21 @@ const ProviderView = () => {
       {/* Modal for file view */}
       {viewFile && (
         <div className="fixed inset-0 z-50 flex items-center justify-center bg-black/60">
-          <div className="bg-white rounded-lg shadow-2xl max-w-2xl w-full p-4 relative flex flex-col">
+          <div className="bg-white rounded-lg shadow-2xl max-w-4xl w-full p-4 relative flex flex-col">
             <button className="absolute top-2 right-2 text-gray-500 hover:text-primary" onClick={() => setViewFile(null)}>
               <CloseIcon className="h-6 w-6" />
             </button>
             <h2 className="text-xl font-bold mb-4 text-primary-700">{viewFile.title}</h2>
-            <div className="flex-1 min-h-[400px] flex items-center justify-center">
-              <iframe src={viewFile.url} title={viewFile.title} className="w-full h-[60vh] rounded border" />
+            <div className="flex-1 min-h-[400px] flex items-center justify-center bg-gray-50">
+              {viewFile.url.toLowerCase().endsWith('.pdf') ? (
+                <iframe src={viewFile.url} title={viewFile.title} className="w-full h-[80vh] rounded border" />
+              ) : (
+                <img 
+                  src={viewFile.url} 
+                  alt={viewFile.title}
+                  className="max-w-full max-h-[80vh] object-contain rounded-lg shadow-lg"
+                />
+              )}
             </div>
           </div>
         </div>

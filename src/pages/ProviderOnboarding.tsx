@@ -47,6 +47,7 @@ const ProviderOnboarding = () => {
       setIsLoading(false);
     }
   };
+  console.log('Account Status:', accountStatus);
 
   const handleStartOnboarding = async () => {
     try {
