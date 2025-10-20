@@ -143,9 +143,17 @@ const Providers = () => {
                                                     size="icon" 
                                                     className="h-8 w-8 hover:bg-info-100 hover:text-info-600 border-info-200" 
                                                     onClick={() => {
-                                                        // Store provider email in sessionStorage as fallback for ID lookup
-                                                        sessionStorage.setItem('currentProviderEmail', provider.email);
-                                                        navigate(`/admin/providers/${encodeURIComponent(provider.email)}`);
+                                                        console.log('=== NAVIGATION CLICK ===');
+                                                        console.log('Provider data being passed:', provider);
+                                                        console.log('Provider keys:', Object.keys(provider));
+                                                        console.log('Provider.providerId:', provider.providerId);
+                                                        console.log('Provider.email:', provider.email);
+                                                        console.log('========================');
+                                                        
+                                                        // Navigate to frontend-only provider view page
+                                                        navigate('/admin/providers/view', { 
+                                                            state: { provider } 
+                                                        });
                                                     }}
                                                 >
                                                     <Eye className="h-4 w-4" />

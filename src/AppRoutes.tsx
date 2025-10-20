@@ -10,6 +10,7 @@ import Analytics from './pages/admin/Analytics';
 import Complaints from './pages/admin/Complaints';
 import ComplaintDetail from './pages/admin/ComplaintDetail';
 import ProviderDetail from './pages/admin/ProviderDetail';
+import ProviderView from './pages/admin/ProviderView';
 import ProviderDashboard from './pages/ProviderDashboard';
 import ProviderOnboarding from './pages/ProviderOnboarding';
 import ProtectedRoute from "./components/ProtectedRoutes";
@@ -47,6 +48,7 @@ const AppRoutes = () =>{
           }>
             <Route index element={<AdminDashboard />} />
             <Route path="providers" element={<Providers />} />
+            <Route path="providers/view" element={<ProviderView />} />
             <Route path="providers/:name" element={<ProviderDetail />} />
             <Route path="bookings" element={<Bookings />} />
             <Route path="complaints" element={<Complaints />} />

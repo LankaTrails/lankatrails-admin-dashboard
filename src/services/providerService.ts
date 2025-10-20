@@ -1,7 +1,7 @@
 import api from "@/api/axiosInstance";
 
 export interface ProviderBasicInfo {
-  userId?: number; // IMPORTANT: Backend DTO doesn't include this field currently
+  providerId: number; // Backend returns this as providerId (Long)
   businessName: string;
   businessType: string;
   businessRegistrationNumber: string;
@@ -10,18 +10,14 @@ export interface ProviderBasicInfo {
   city: string;
 }
 
-// Helper function to extract user ID from response if it exists
-// Backend ProviderInfoDTO currently does NOT include userId field
-// This is a known limitation that needs backend fix
+// Helper function to extract provider ID from response
+// Backend ProviderInfoDTO uses providerId field (Long type)
 export function extractProviderId(provider: any): number | null {
-  // Try different possible field names
-  if (provider.userId) return provider.userId;
-  if (provider.id) return provider.id;
-  if (provider.providerId) return provider.providerId;
-  return null;
+  return provider.providerId || null;
 }
 
 export interface ProviderDetailInfo {
+  providerID: number; // Backend uses providerID (capital ID) in ProviderViewInfoDTO
   email: string;
   profilePicUrl: string;
   status: string;
@@ -38,11 +34,28 @@ export interface ProviderDetailInfo {
  * Get all providers basic info for list view
  */
 export async function getAllProviders(): Promise<ProviderBasicInfo[]> {
+  console.log('=== getAllProviders Service Call ===');
   try {
     const response = await api.get('/admin/approve-provider/providers');
-    console.log('Response from getAllProviders:', response.data);
-    return response.data.data.content;
+    console.log('getAllProviders Full Response:', response);
+    console.log('getAllProviders Response data:', response.data);
+    console.log('getAllProviders Response data.data:', response.data.data);
+    console.log('getAllProviders Response data.data.content:', response.data.data.content);
+    
+    const providers = response.data.data.content;
+    console.log('Providers array:', providers);
+    
+    if (providers && providers.length > 0) {
+      console.log('First provider sample:', providers[0]);
+      console.log('First provider keys:', Object.keys(providers[0]));
+      console.log('First provider.providerId:', providers[0].providerId);
+    }
+    
+    console.log('=== getAllProviders Success ===');
+    return providers;
   } catch (error: any) {
+    console.error('=== getAllProviders Error ===');
+    console.error('Error:', error);
     if (error.response && error.response.data) {
       const { code, message, details, userMessage } = error.response.data;
       throw {
@@ -63,13 +76,37 @@ export async function getAllProviders(): Promise<ProviderBasicInfo[]> {
  * Get provider details by ID
  */
 export async function getProviderById(providerId: number): Promise<ProviderDetailInfo> {
+  console.log('=== getProviderById Service Call ===');
+  console.log('Input providerId:', providerId, 'Type:', typeof providerId);
+  
   try {
-    const response = await api.get(`/admin/approve-provider/service-category/${providerId}`);
-    console.log('Response from getProviderById:', response.data);
-    return response.data.data.content;
+    const url = `/admin/approve-provider/service-category/${providerId}`;
+    console.log('API URL:', url);
+    console.log('Making GET request to:', url);
+    
+    const response = await api.get(url);
+    
+    console.log('Full API response:', response);
+    console.log('Response status:', response.status);
+    console.log('Response data:', response.data);
+    console.log('Response data.data:', response.data.data);
+    console.log('Response data.data.content:', response.data.data.content);
+    
+    const providerData = response.data.data.content;
+    console.log('Extracted provider data:', providerData);
+    console.log('=== getProviderById Service Call Success ===');
+    
+    return providerData;
   } catch (error: any) {
+    console.error('=== getProviderById Service Call Error ===');
+    console.error('Error object:', error);
+    console.error('Error response:', error.response);
+    console.error('Error response status:', error.response?.status);
+    console.error('Error response data:', error.response?.data);
+    
     if (error.response && error.response.data) {
       const { code, message, details, userMessage } = error.response.data;
+      console.error('Structured error:', { code, message, details, userMessage });
       throw {
         code,
         message,
@@ -77,6 +114,7 @@ export async function getProviderById(providerId: number): Promise<ProviderDetai
         userMessage,
       };
     }
+    console.error('Throwing generic error');
     throw {
       message: 'Failed to load provider details',
       code: 'UNKNOWN_ERROR',
