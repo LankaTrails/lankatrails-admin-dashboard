@@ -1,6 +1,6 @@
 import { useState } from 'react';
 import { Button } from '@/components/ui/button';
-import { Menu, X, Bell, LogOut, Settings } from 'lucide-react';
+import { Menu, X, LogOut } from 'lucide-react';
 import { Link, useNavigate } from 'react-router-dom';
 import { useAuth } from '@/hooks/useAuth';
 
@@ -26,12 +26,6 @@ const Header = () => {
 
           {/* Right-side controls */}
           <div className="hidden md:flex items-center gap-3">
-            <Button variant="outline" size="icon" className="h-10 w-10 rounded-xl border-primary-200 hover:bg-primary-50 hover:text-primary-700 hover:border-primary-300 transition-all shadow-sm">
-              <Bell className="h-5 w-5" />
-            </Button>
-            <Button variant="outline" size="icon" className="h-10 w-10 rounded-xl border-secondary-200 hover:bg-secondary-50 hover:text-secondary-700 hover:border-secondary-300 transition-all shadow-sm">
-              <Settings className="h-5 w-5" />
-            </Button>
             <Button
               variant="outline"
               size="icon"
