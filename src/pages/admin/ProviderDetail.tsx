@@ -2,48 +2,145 @@ import { useParams, useNavigate } from "react-router-dom";
 import { Card, CardContent, CardHeader, CardTitle, CardDescription } from "@/components/ui/card";
 import { Badge } from "@/components/ui/badge";
 import { Button } from "@/components/ui/button";
-import { Alert, AlertDescription } from "@/components/ui/alert";
+import { Alert, AlertDescription, AlertTitle } from "@/components/ui/alert";
 import { motion } from "framer-motion";
-import { ArrowLeft, User, Calendar, MapPin, Building2, FileText, Mail, Phone, IdCard, Briefcase, CheckCircle, XCircle, X as CloseIcon, CreditCard, AlertCircle, Loader2 } from "lucide-react";
+import { ArrowLeft, User, Calendar, MapPin, Building2, FileText, Mail, Phone, IdCard, Briefcase, CheckCircle, XCircle, X as CloseIcon, CreditCard, AlertCircle, Loader2, ExternalLink } from "lucide-react";
 import { useState, useEffect } from "react";
-import { getStripeAccountStatus } from "@/services/providerOnboarding";
-import { getProviderById, ProviderDetailInfo } from "@/services/providerService";
+import { getProviderById, getAllProviders, ProviderDetailInfo, approveOrRejectLicense } from "@/services/providerService";
+import { useToast } from "@/hooks/use-toast";
 
+
+// Type definitions for license
+interface LicenseDTO {
+  licenseId: number;
+  licenseNumber: string;
+  expiryDate: string;
+  licenseUrl: string;
+  category: string;
+  providerId: number;
+  status: 'PENDING' | 'APPROVED' | 'REJECTED';
+  businessName: string;
+  categoryName: string;
+}
+
+interface PendingLicenses {
+  content: {
+    accommodation: LicenseDTO[];
+    activity: LicenseDTO[];
+    transport: LicenseDTO[];
+    tourGuide: LicenseDTO[];
+    foodBeverage: LicenseDTO[];
+  };
+}
 
 const getStatusVariant = (status: string) => {
   switch (status.toUpperCase()) {
     case 'ACTIVE':
     case 'APPROVED': 
-      return { variant: 'default', color: 'bg-success-500 hover:bg-success-600 border-0 shadow-md' };
+      return { variant: 'default', color: 'bg-success-500 hover:bg-success-600 border-0 shadow-md text-white' };
     case 'PENDING': 
       return { variant: 'secondary', color: 'bg-warning-500 text-white hover:bg-warning-600 border-0 shadow-md' };
-    case 'REJECTED': 
-      return { variant: 'destructive', color: 'bg-destructive-500 hover:bg-destructive-600 border-0 shadow-md' };
+    case 'REJECTED':
+    case 'DISABLED':
+      return { variant: 'destructive', color: 'bg-destructive-500 hover:bg-destructive-600 border-0 shadow-md text-white' };
     default: 
       return { variant: 'outline', color: '' };
   }
 };
 
+const getCategoryDisplayName = (key: string) => {
+  const map: Record<string, string> = {
+    accommodation: 'Accommodation',
+    activity: 'Activity',
+    transport: 'Transport',
+    tourGuide: 'Tour Guide',
+    foodBeverage: 'Food & Beverage'
+  };
+  return map[key] || key;
+};
+
+const getCategoryIdFromName = (name: string): number => {
+  const map: Record<string, number> = {
+    'ACCOMMODATION': 1,
+    'ACTIVITY': 2,
+    'TOUR_GUIDE': 3,
+    'TRANSPORT': 4,
+    'FOOD_BEVERAGE': 5
+  };
+  return map[name] || 1;
+};
+
 const ProviderDetail = () => {
-  const { name: providerId } = useParams();
+  const { name: providerParam } = useParams();  // Could be email or ID
   const navigate = useNavigate();
+  const { toast } = useToast();
+  const [providerId, setProviderId] = useState<number | null>(null);
   const [provider, setProvider] = useState<ProviderDetailInfo | null>(null);
   const [isLoadingProvider, setIsLoadingProvider] = useState(true);
   const [providerError, setProviderError] = useState<string | null>(null);
-
-  // Local state for file approval/decline
-  const [regFileStatus, setRegFileStatus] = useState<'pending' | 'accepted' | 'declined'>('pending');
-  const [idFileStatus, setIdFileStatus] = useState<'pending' | 'accepted' | 'declined'>('pending');
-  // Modal state for viewing files
   const [viewFile, setViewFile] = useState<null | { url: string; title: string }>(null);
-  // Stripe onboarding status
-  const [stripeAccountStatus, setStripeAccountStatus] = useState<any>(null);
-  const [isLoadingStripe, setIsLoadingStripe] = useState(true);
+  const [processingLicense, setProcessingLicense] = useState<number | null>(null);
 
+  // First, resolve email to provider ID
+  useEffect(() => {
+    const resolveProviderId = async () => {
+      if (!providerParam) return;
+
+      // Check if providerParam is a number (direct ID)
+      const numericId = Number(providerParam);
+      if (!isNaN(numericId) && numericId > 0) {
+        setProviderId(numericId);
+        return;
+      }
+
+      // Otherwise, it's an email - need to lookup the provider
+      try {
+        const decodedEmail = decodeURIComponent(providerParam);
+        const allProviders = await getAllProviders();
+        
+        // Find provider by email
+        const matchedProvider = allProviders.find(p => p.email === decodedEmail);
+        
+        if (matchedProvider) {
+          // Backend Fix Required: ProviderInfoDTO doesn't include userId field
+          // This is a known backend issue - see BACKEND_FIX_NEEDED.md
+          console.error('Backend Fix Required: ProviderInfoDTO missing userId field');
+          console.error('Provider Email:', decodedEmail);
+          console.error('See BACKEND_FIX_NEEDED.md for solution');
+          setProviderError(`Backend configuration issue: Provider ID is not available in the API response.
+
+The backend ProviderInfoDTO needs to include the userId field. 
+
+Technical Details:
+- Provider Email: ${decodedEmail}
+- Required Field: userId in ProviderInfoDTO
+- Required Endpoint Fix: GET /api/admin/approve-provider/providers
+
+Please ask the backend team to:
+1. Add userId field to ProviderInfoDTO
+2. Map userId in AuthServiceImpl.getBasicProviderInfo()
+
+Estimated fix time: 2 minutes
+See BACKEND_FIX_NEEDED.md for complete instructions.`);
+          setIsLoadingProvider(false);
+        } else {
+          setProviderError('Provider not found with the given email.');
+          setIsLoadingProvider(false);
+        }
+      } catch (error: any) {
+        console.error('Error resolving provider ID:', error);
+        setProviderError('Failed to resolve provider information.');
+        setIsLoadingProvider(false);
+      }
+    };
+
+    resolveProviderId();
+  }, [providerParam]);
+
+  // Load provider data once we have the ID
   useEffect(() => {
     if (providerId) {
       loadProviderData();
-      checkStripeStatus();
     }
   }, [providerId]);
 
@@ -54,26 +151,47 @@ const ProviderDetail = () => {
       const data = await getProviderById(Number(providerId));
       setProvider(data);
     } catch (error: any) {
+      console.error('Error loading provider:', error);
       setProviderError(error.userMessage || error.message || 'Failed to load provider details');
     } finally {
       setIsLoadingProvider(false);
     }
   };
 
-  const checkStripeStatus = async () => {
+  const handleLicenseAction = async (license: LicenseDTO, action: 'APPROVED' | 'REJECTED') => {
     try {
-      const status = await getStripeAccountStatus();
-      setStripeAccountStatus(status);
-    } catch (error) {
-      console.log('No Stripe account set up yet');
+      setProcessingLicense(license.licenseId);
+      
+      const categoryId = getCategoryIdFromName(license.category);
+      
+      await approveOrRejectLicense({
+        providerId: Number(providerId),
+        category: {
+          categoryId: categoryId,
+          categoryName: license.category
+        },
+        status: action
+      });
+
+      toast({
+        title: action === 'APPROVED' ? 'License Approved' : 'License Rejected',
+        description: `${license.categoryName} license has been ${action.toLowerCase()} successfully.`,
+        variant: action === 'APPROVED' ? 'default' : 'destructive'
+      });
+
+      // Reload provider data
+      await loadProviderData();
+    } catch (error: any) {
+      console.error('Error processing license:', error);
+      toast({
+        title: 'Error',
+        description: error.userMessage || error.message || 'Failed to process license',
+        variant: 'destructive'
+      });
     } finally {
-      setIsLoadingStripe(false);
+      setProcessingLicense(null);
     }
   };
-
-  const isFullyOnboarded = stripeAccountStatus?.details_submitted && 
-                          stripeAccountStatus?.charges_enabled && 
-                          stripeAccountStatus?.payouts_enabled;
 
   if (isLoadingProvider) {
     return (
@@ -84,24 +202,47 @@ const ProviderDetail = () => {
     );
   }
 
-  if (providerError || !provider) {
+  if (providerError || (!provider && !isLoadingProvider)) {
     return (
-      <div className="flex flex-col items-center justify-center min-h-[60vh]">
+      <div className="flex flex-col items-center justify-center min-h-[60vh] max-w-3xl mx-auto px-6">
+        <AlertCircle className="h-16 w-16 text-red-500 mb-4" />
         <h2 className="text-2xl font-bold mb-4 text-red-600">
-          {providerError || 'Provider Not Found'}
+          {providerError ? 'Configuration Issue' : 'Provider Not Found'}
         </h2>
-        <Button onClick={() => navigate(-1)}>Go Back</Button>
+        {providerError && (
+          <Alert variant="destructive" className="mb-4">
+            <AlertTitle>Error Details</AlertTitle>
+            <AlertDescription className="whitespace-pre-wrap text-sm">{providerError}</AlertDescription>
+          </Alert>
+        )}
+        <Button onClick={() => navigate(-1)} className="mt-4">
+          <ArrowLeft className="h-4 w-4 mr-2" />
+          Go Back to Provider List
+        </Button>
       </div>
     );
   }
 
   const statusInfo = getStatusVariant(provider.status);
 
-  // Helper to render status feedback
-  const renderFileStatus = (status: 'pending' | 'accepted' | 'declined') => {
-    if (status === 'accepted') return <span className="flex items-center gap-1 text-green-600 font-semibold ml-2"><CheckCircle className="h-4 w-4" /> Accepted</span>;
-    if (status === 'declined') return <span className="flex items-center gap-1 text-red-600 font-semibold ml-2"><XCircle className="h-4 w-4" /> Declined</span>;
-    return null;
+  // Get all licenses from pendingLicenses
+  const getAllLicenses = (): LicenseDTO[] => {
+    if (!provider.pendingLicenses?.content) return [];
+    const licenses: LicenseDTO[] = [];
+    const content = provider.pendingLicenses.content;
+    
+    if (content.accommodation) licenses.push(...content.accommodation);
+    if (content.activity) licenses.push(...content.activity);
+    if (content.transport) licenses.push(...content.transport);
+    if (content.tourGuide) licenses.push(...content.tourGuide);
+    if (content.foodBeverage) licenses.push(...content.foodBeverage);
+    
+    return licenses;
+  };
+
+  const allLicenses = getAllLicenses();
+  const formatDate = (dateString: string) => {
+    return new Date(dateString).toLocaleDateString('en-US', { year: 'numeric', month: 'long', day: 'numeric' });
   };
 
   return (
@@ -164,116 +305,120 @@ const ProviderDetail = () => {
               <div className="flex items-center gap-2">
                 <FileText className="h-5 w-5 text-primary" />
                 <span className="font-semibold text-gray-700">Document:</span>
-                <button className="text-primary underline ml-1" onClick={() => setViewFile({ url: provider.businessRegistrationUrl, title: 'Business Registration Document' })}>View</button>
-              </div>
-              <div className="flex gap-2 mt-2">
-                <Button size="sm" variant="outline" onClick={() => setRegFileStatus('accepted')} disabled={regFileStatus==='accepted'} className="border-success-300 hover:bg-success-100 text-success-700"><CheckCircle className="h-4 w-4 mr-1" /> Accept</Button>
-                <Button size="sm" variant="outline" onClick={() => setRegFileStatus('declined')} disabled={regFileStatus==='declined'} className="border-destructive-300 hover:bg-destructive-100 text-destructive-700"><XCircle className="h-4 w-4 mr-1" /> Decline</Button>
-                {renderFileStatus(regFileStatus)}
+                <Button 
+                  size="sm" 
+                  variant="link"
+                  onClick={() => setViewFile({ url: provider.businessRegistrationUrl, title: 'Business Registration Document' })}
+                  className="text-primary p-0 h-auto"
+                >
+                  <ExternalLink className="h-4 w-4 mr-1" />
+                  View Document
+                </Button>
               </div>
             </div>
           </div>
           )}
-          {/* Pending Licenses */}
-          {provider.pendingLicenses && (
-            <div className="bg-primary/5 rounded-lg p-6 border border-primary/10 shadow-inner">
-              <h3 className="text-lg font-semibold mb-4 text-primary-700 flex items-center gap-2">
-                <FileText className="h-5 w-5 text-primary" /> Pending License Approvals
+          {/* Licenses Section */}
+          {allLicenses.length > 0 ? (
+            <div className="bg-gradient-to-br from-accent-50 to-white rounded-xl p-6 border-2 border-accent-100 shadow-md">
+              <h3 className="text-lg font-semibold mb-4 text-gray-800 flex items-center gap-2">
+                <div className="p-2 bg-gradient-warm rounded-lg">
+                  <FileText className="h-5 w-5 text-white" />
+                </div>
+                Service Licenses ({allLicenses.length})
               </h3>
-              <div className="text-sm text-gray-600">
-                {/* Display pending licenses information here */}
-                Pending licenses data will be displayed here
+              <div className="space-y-4">
+                {allLicenses.map((license) => (
+                  <div key={license.licenseId} className="bg-white rounded-lg border-2 border-gray-200 shadow p-5">
+                    <div className="flex items-start justify-between mb-3">
+                      <div className="flex-1">
+                        <div className="flex items-center gap-2 mb-2">
+                          <h4 className="text-lg font-bold text-gray-800">{license.categoryName}</h4>
+                          <Badge 
+                            variant={license.status === 'APPROVED' ? 'default' : license.status === 'PENDING' ? 'secondary' : 'destructive'}
+                            className={`capitalize ${
+                              license.status === 'APPROVED' ? 'bg-success-500 text-white' : 
+                              license.status === 'PENDING' ? 'bg-warning-500 text-white' : 
+                              'bg-destructive-500 text-white'
+                            }`}
+                          >
+                            {license.status.toLowerCase()}
+                          </Badge>
+                        </div>
+                        <div className="grid grid-cols-1 md:grid-cols-2 gap-2 text-sm text-gray-600">
+                          <div className="flex items-center gap-2">
+                            <IdCard className="h-4 w-4 text-primary" />
+                            <span className="font-semibold">License Number:</span>
+                            <span>{license.licenseNumber}</span>
+                          </div>
+                          <div className="flex items-center gap-2">
+                            <Calendar className="h-4 w-4 text-primary" />
+                            <span className="font-semibold">Expiry Date:</span>
+                            <span>{formatDate(license.expiryDate)}</span>
+                          </div>
+                        </div>
+                      </div>
+                    </div>
+                    
+                    <div className="flex items-center gap-3 mt-4 pt-4 border-t border-gray-200">
+                      {license.licenseUrl && (
+                        <Button 
+                          size="sm" 
+                          variant="outline"
+                          onClick={() => setViewFile({ url: license.licenseUrl, title: `${license.categoryName} License` })}
+                          className="border-info-300 hover:bg-info-100 text-info-700"
+                        >
+                          <ExternalLink className="h-4 w-4 mr-1" /> View Document
+                        </Button>
+                      )}
+                      
+                      {license.status === 'PENDING' && (
+                        <>
+                          <Button 
+                            size="sm" 
+                            variant="outline"
+                            onClick={() => handleLicenseAction(license, 'APPROVED')}
+                            disabled={processingLicense === license.licenseId}
+                            className="border-success-300 hover:bg-success-100 text-success-700"
+                          >
+                            {processingLicense === license.licenseId ? (
+                              <Loader2 className="h-4 w-4 mr-1 animate-spin" />
+                            ) : (
+                              <CheckCircle className="h-4 w-4 mr-1" />
+                            )}
+                            Approve
+                          </Button>
+                          <Button 
+                            size="sm" 
+                            variant="outline"
+                            onClick={() => handleLicenseAction(license, 'REJECTED')}
+                            disabled={processingLicense === license.licenseId}
+                            className="border-destructive-300 hover:bg-destructive-100 text-destructive-700"
+                          >
+                            {processingLicense === license.licenseId ? (
+                              <Loader2 className="h-4 w-4 mr-1 animate-spin" />
+                            ) : (
+                              <XCircle className="h-4 w-4 mr-1" />
+                            )}
+                            Reject
+                          </Button>
+                        </>
+                      )}
+                    </div>
+                  </div>
+                ))}
               </div>
             </div>
+          ) : (
+            <Alert className="border-gray-200 bg-gray-50">
+              <AlertCircle className="h-5 w-5 text-gray-600" />
+              <AlertTitle>No Licenses</AlertTitle>
+              <AlertDescription className="text-gray-700">
+                This provider has not submitted any license documents yet.
+              </AlertDescription>
+            </Alert>
           )}
 
-          {/* Stripe Onboarding Status Section */}
-          <div className="bg-gradient-to-br from-secondary-50 to-white rounded-xl p-6 border-2 border-secondary-100 shadow-md">
-            <h3 className="text-lg font-semibold mb-4 text-gray-800 flex items-center gap-2">
-              <div className="p-2 bg-gradient-purple rounded-lg">
-                <CreditCard className="h-5 w-5 text-white" />
-              </div>
-              Payment Account Setup (Stripe Onboarding)
-            </h3>
-            
-            {isLoadingStripe ? (
-              <div className="flex items-center justify-center py-4">
-                <Loader2 className="h-6 w-6 animate-spin text-primary" />
-                <span className="ml-2 text-gray-600">Checking payment account status...</span>
-              </div>
-            ) : stripeAccountStatus ? (
-              <div className="space-y-4">
-                {/* Overall Status Alert */}
-                {isFullyOnboarded ? (
-                  <Alert className="border-success-200 bg-success-50">
-                    <CheckCircle className="h-5 w-5 text-success-600" />
-                    <AlertDescription className="text-success-800">
-                      Payment account is fully set up and operational.
-                    </AlertDescription>
-                  </Alert>
-                ) : (
-                  <Alert className="border-warning-200 bg-warning-50">
-                    <AlertCircle className="h-5 w-5 text-warning-600" />
-                    <AlertDescription className="text-warning-800">
-                      Payment account setup is incomplete. Provider needs to complete onboarding.
-                    </AlertDescription>
-                  </Alert>
-                )}
-
-                {/* Detailed Status Grid */}
-                <div className="grid grid-cols-1 md:grid-cols-3 gap-4">
-                  <div className="bg-white rounded-lg border border-primary/20 shadow p-4">
-                    <div className="flex items-center justify-between">
-                      <span className="text-sm font-semibold text-gray-700">Details Submitted</span>
-                      {stripeAccountStatus.details_submitted ? (
-                        <CheckCircle className="h-5 w-5 text-green-500" />
-                      ) : (
-                        <XCircle className="h-5 w-5 text-yellow-500" />
-                      )}
-                    </div>
-                  </div>
-                  <div className="bg-white rounded-lg border border-primary/20 shadow p-4">
-                    <div className="flex items-center justify-between">
-                      <span className="text-sm font-semibold text-gray-700">Charges Enabled</span>
-                      {stripeAccountStatus.charges_enabled ? (
-                        <CheckCircle className="h-5 w-5 text-green-500" />
-                      ) : (
-                        <XCircle className="h-5 w-5 text-yellow-500" />
-                      )}
-                    </div>
-                  </div>
-                  <div className="bg-white rounded-lg border border-primary/20 shadow p-4">
-                    <div className="flex items-center justify-between">
-                      <span className="text-sm font-semibold text-gray-700">Payouts Enabled</span>
-                      {stripeAccountStatus.payouts_enabled ? (
-                        <CheckCircle className="h-5 w-5 text-green-500" />
-                      ) : (
-                        <XCircle className="h-5 w-5 text-yellow-500" />
-                      )}
-                    </div>
-                  </div>
-                </div>
-
-                {/* Account ID */}
-                <div className="bg-white rounded-lg border border-primary/20 shadow p-4">
-                  <div className="flex items-center gap-2">
-                    <IdCard className="h-5 w-5 text-primary" />
-                    <span className="font-semibold text-gray-700">Stripe Account ID:</span>
-                    <code className="ml-1 text-sm bg-gray-100 px-2 py-1 rounded text-gray-800">
-                      {stripeAccountStatus.account_id}
-                    </code>
-                  </div>
-                </div>
-              </div>
-            ) : (
-              <Alert className="border-gray-200 bg-gray-50">
-                <AlertCircle className="h-5 w-5 text-gray-600" />
-                <AlertDescription className="text-gray-700">
-                  Provider has not started the payment account setup process yet.
-                </AlertDescription>
-              </Alert>
-            )}
-          </div>
         </CardContent>
       </Card>
       {/* Modal for file view */}

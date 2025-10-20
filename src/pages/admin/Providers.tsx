@@ -152,7 +152,18 @@ const Providers = () => {
                                         </TableCell>
                                         <TableCell className="text-right">
                                             <div className="flex items-center justify-end gap-2">
-                                                <Button variant="outline" size="icon" className="h-8 w-8 hover:bg-info-100 hover:text-info-600 border-info-200" onClick={() => navigate(`/admin/providers/${provider.userId || encodeURIComponent(provider.email)}`)}><Eye className="h-4 w-4" /></Button>
+                                                <Button 
+                                                    variant="outline" 
+                                                    size="icon" 
+                                                    className="h-8 w-8 hover:bg-info-100 hover:text-info-600 border-info-200" 
+                                                    onClick={() => {
+                                                        // Store provider email in sessionStorage as fallback for ID lookup
+                                                        sessionStorage.setItem('currentProviderEmail', provider.email);
+                                                        navigate(`/admin/providers/${encodeURIComponent(provider.email)}`);
+                                                    }}
+                                                >
+                                                    <Eye className="h-4 w-4" />
+                                                </Button>
                                             </div>
                                         </TableCell>
                                     </motion.tr>
