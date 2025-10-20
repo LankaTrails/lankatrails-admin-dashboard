@@ -43,24 +43,33 @@ const Dashboard = () => {
 
   useEffect(() => {
     const fetchDashboardData = async () => {
+      setLoading(true);
+      setError(null);
+      
       try {
-        setLoading(true);
-        setError(null);
-        
-        // Fetch dashboard analytics and providers in parallel
-        const [analyticsData, providersData] = await Promise.all([
-          getDashboardAnalytics(),
-          getAllProviders()
-        ]);
-        
-        setDashboardData(analyticsData);
-        setProviders(providersData.slice(0, 5)); // Get only recent 5 providers
+        // Fetch providers (always try to show this)
+        const providersData = await getAllProviders();
+        setProviders(providersData.slice(0, 5));
+        console.log('✅ Providers loaded successfully');
       } catch (err: any) {
-        console.error('Failed to fetch dashboard data:', err);
-        setError(err.userMessage || err.message || 'Failed to load dashboard data');
-      } finally {
-        setLoading(false);
+        console.error('❌ Failed to fetch providers:', err);
+        // Continue even if providers fail
       }
+      
+      try {
+        // Fetch analytics (can fail gracefully)
+        const analyticsData = await getDashboardAnalytics();
+        setDashboardData(analyticsData);
+        console.log('✅ Analytics loaded successfully');
+      } catch (err: any) {
+        console.error('❌ Failed to fetch analytics:', err);
+        setError(
+          'Analytics data temporarily unavailable. The analytics endpoint is experiencing issues. ' +
+          'Provider data is still displayed below.'
+        );
+      }
+      
+      setLoading(false);
     };
 
     fetchDashboardData();
@@ -88,43 +97,35 @@ const Dashboard = () => {
     );
   }
 
-  if (error) {
-    return (
-      <Alert variant="destructive">
-        <AlertCircle className="h-4 w-4" />
-        <AlertTitle>Error</AlertTitle>
-        <AlertDescription>{error}</AlertDescription>
-      </Alert>
-    );
-  }
-
-  if (!dashboardData) {
-    return (
-      <div className="text-center py-12">
-        <AlertCircle className="h-12 w-12 text-gray-400 mx-auto mb-4" />
-        <p className="text-gray-600">No dashboard data available.</p>
-      </div>
-    );
-  }
-
   return (
     <>
-      <motion.div className="grid gap-4 md:grid-cols-2 md:gap-8 lg:grid-cols-4" variants={containerVariants} initial="hidden" animate="visible">
-        <motion.div variants={itemVariants}>
-          <Card className="hover:shadow-xl transition-all duration-300 border-0 shadow-lg overflow-hidden relative bg-gradient-to-br from-success-50 to-white h-full">
-            <div className="absolute top-0 right-0 w-32 h-32 bg-gradient-success opacity-10 rounded-full -mr-16 -mt-16"></div>
-            <CardHeader className="flex flex-row items-center justify-between space-y-0 pb-2 relative z-10">
-              <CardTitle className="text-sm font-semibold text-gray-700">Total Revenue</CardTitle>
-              <div className="p-3 rounded-xl bg-gradient-success shadow-md">
-                <DollarSign className="h-5 w-5 text-white" />
-              </div>
-            </CardHeader>
-            <CardContent className="relative z-10">
-              <div className="text-3xl font-bold bg-gradient-to-r from-success-600 to-success-500 bg-clip-text text-transparent">{formatCurrency(dashboardData.kpis.totalRevenue)}</div>
-              <p className="text-xs text-success-600 font-medium mt-1">Recent: {formatCurrency(dashboardData.recentPerformance.recentRevenue)}</p>
-            </CardContent>
-          </Card>
-        </motion.div>
+      {/* Show error alert if analytics failed */}
+      {error && (
+        <Alert variant="destructive" className="mb-6">
+          <AlertCircle className="h-4 w-4" />
+          <AlertTitle>Analytics Unavailable</AlertTitle>
+          <AlertDescription>{error}</AlertDescription>
+        </Alert>
+      )}
+
+      {/* Only show analytics cards if data is available */}
+      {dashboardData && (
+        <motion.div className="grid gap-4 md:grid-cols-2 md:gap-8 lg:grid-cols-4" variants={containerVariants} initial="hidden" animate="visible">
+          <motion.div variants={itemVariants}>
+            <Card className="hover:shadow-xl transition-all duration-300 border-0 shadow-lg overflow-hidden relative bg-gradient-to-br from-success-50 to-white h-full">
+              <div className="absolute top-0 right-0 w-32 h-32 bg-gradient-success opacity-10 rounded-full -mr-16 -mt-16"></div>
+              <CardHeader className="flex flex-row items-center justify-between space-y-0 pb-2 relative z-10">
+                <CardTitle className="text-sm font-semibold text-gray-700">Total Revenue</CardTitle>
+                <div className="p-3 rounded-xl bg-gradient-success shadow-md">
+                  <DollarSign className="h-5 w-5 text-white" />
+                </div>
+              </CardHeader>
+              <CardContent className="relative z-10">
+                <div className="text-3xl font-bold bg-gradient-to-r from-success-600 to-success-500 bg-clip-text text-transparent">{formatCurrency(dashboardData.kpis.totalRevenue)}</div>
+                <p className="text-xs text-success-600 font-medium mt-1">Recent: {formatCurrency(dashboardData.recentPerformance.recentRevenue)}</p>
+              </CardContent>
+            </Card>
+          </motion.div>
         <motion.div variants={itemVariants}>
           <Card className="hover:shadow-xl transition-all duration-300 border-0 shadow-lg overflow-hidden relative bg-gradient-to-br from-info-50 to-white h-full">
             <div className="absolute top-0 right-0 w-32 h-32 bg-gradient-info opacity-10 rounded-full -mr-16 -mt-16"></div>
@@ -171,6 +172,10 @@ const Dashboard = () => {
           </Card>
         </motion.div>
       </motion.div>
+      )}
+
+      {/* Charts section - only show if analytics data is available */}
+      {dashboardData && (
       <motion.div className="grid gap-4 md:grid-cols-2 lg:grid-cols-7" variants={containerVariants} initial="hidden" animate="visible">
         <motion.div variants={itemVariants} className="lg:col-span-3">
           <Card className="hover:shadow-xl transition-all duration-300 border-0 shadow-lg h-full bg-white">
@@ -195,54 +200,8 @@ const Dashboard = () => {
             </CardContent>
           </Card>
         </motion.div>
-        <motion.div variants={itemVariants} className="lg:col-span-4">
-          <Card className="hover:shadow-xl transition-all duration-300 border-0 shadow-lg h-full bg-white">
-            <CardHeader>
-              <CardTitle className="flex items-center gap-2 text-gray-800">
-                <div className="w-1 h-6 bg-gradient-primary rounded-full"></div>
-                Recent Provider Registrations
-              </CardTitle>
-              <CardDescription>Manage provider accounts and view their status.</CardDescription>
-            </CardHeader>
-            <CardContent>
-              <Table>
-                <TableHeader>
-                  <TableRow>
-                    <TableHead>Provider</TableHead>
-                    <TableHead className="hidden md:table-cell">Service</TableHead>
-                    <TableHead>Status</TableHead>
-                    <TableHead className="text-right">Actions</TableHead>
-                  </TableRow>
-                </TableHeader>
-                <TableBody>
-                  {providers.map((provider) => (
-                    <motion.tr key={provider.email} variants={itemVariants} className="hover:bg-muted/50 transition-colors">
-                      <TableCell>
-                        <div className="font-medium">{provider.businessName}</div>
-                        <div className="text-sm text-muted-foreground hidden md:inline">{provider.email}</div>
-                      </TableCell>
-                      <TableCell className="hidden md:table-cell">{provider.businessType}</TableCell>
-                      <TableCell>
-                        <Badge variant={provider.status === 'APPROVED' ? 'default' : provider.status === 'PENDING' ? 'secondary' : 'destructive'} className={`capitalize ${provider.status === 'APPROVED' ? 'bg-success-500 hover:bg-success-600 border-0' : provider.status === 'PENDING' ? 'bg-warning-500 text-white hover:bg-warning-600 border-0' : 'bg-destructive-500 hover:bg-destructive-600 border-0'}`}>{provider.status}</Badge>
-                      </TableCell>
-                      <TableCell className="text-right">
-                        <div className="flex items-center justify-end gap-2">
-                          <Button variant="outline" size="icon" className="h-8 w-8 hover:bg-info-100 hover:text-info-600 border-info-200"><Eye className="h-4 w-4" /></Button>
-                          {provider.status === 'PENDING' && (
-                            <>
-                              <Button variant="outline" size="icon" className="h-8 w-8 text-success-600 hover:bg-success-100 border-success-200"><BadgeCheck className="h-4 w-4" /></Button>
-                              <Button variant="outline" size="icon" className="h-8 w-8 text-destructive-600 hover:bg-destructive-100 border-destructive-200"><BadgeX className="h-4 w-4" /></Button>
-                            </>
-                          )}
-                        </div>
-                      </TableCell>
-                    </motion.tr>
-                  ))}
-                </TableBody>
-              </Table>
-            </CardContent>
-          </Card>
-        </motion.div>
+        
+        {/* Pie chart - only show when analytics available */}
         <motion.div variants={itemVariants}>
           <Card className="hover:shadow-xl transition-all duration-300 border-0 shadow-lg h-full bg-gradient-to-br from-white to-accent-50/30">
             <CardHeader>
@@ -266,6 +225,57 @@ const Dashboard = () => {
           </Card>
         </motion.div>
       </motion.div>
+      )}
+
+      {/* Providers table - always show if available */}
+      {providers.length > 0 && (
+        <Card className="hover:shadow-xl transition-all duration-300 border-0 shadow-lg bg-white">
+          <CardHeader>
+            <CardTitle className="flex items-center gap-2 text-gray-800">
+              <div className="w-1 h-6 bg-gradient-primary rounded-full"></div>
+              Recent Provider Registrations
+            </CardTitle>
+            <CardDescription>Manage provider accounts and view their status.</CardDescription>
+          </CardHeader>
+          <CardContent>
+            <Table>
+              <TableHeader>
+                <TableRow>
+                  <TableHead>Provider</TableHead>
+                  <TableHead className="hidden md:table-cell">Service</TableHead>
+                  <TableHead>Status</TableHead>
+                  <TableHead className="text-right">Actions</TableHead>
+                </TableRow>
+              </TableHeader>
+              <TableBody>
+                {providers.map((provider) => (
+                  <motion.tr key={provider.email} variants={itemVariants} className="hover:bg-muted/50 transition-colors">
+                    <TableCell>
+                      <div className="font-medium">{provider.businessName}</div>
+                      <div className="text-sm text-muted-foreground hidden md:inline">{provider.email}</div>
+                    </TableCell>
+                    <TableCell className="hidden md:table-cell">{provider.businessType}</TableCell>
+                    <TableCell>
+                      <Badge variant={provider.status === 'APPROVED' ? 'default' : provider.status === 'PENDING' ? 'secondary' : 'destructive'} className={`capitalize ${provider.status === 'APPROVED' ? 'bg-success-500 hover:bg-success-600 border-0' : provider.status === 'PENDING' ? 'bg-warning-500 text-white hover:bg-warning-600 border-0' : 'bg-destructive-500 hover:bg-destructive-600 border-0'}`}>{provider.status}</Badge>
+                    </TableCell>
+                    <TableCell className="text-right">
+                      <div className="flex items-center justify-end gap-2">
+                        <Button variant="outline" size="icon" className="h-8 w-8 hover:bg-info-100 hover:text-info-600 border-info-200"><Eye className="h-4 w-4" /></Button>
+                        {provider.status === 'PENDING' && (
+                          <>
+                            <Button variant="outline" size="icon" className="h-8 w-8 text-success-600 hover:bg-success-100 border-success-200"><BadgeCheck className="h-4 w-4" /></Button>
+                            <Button variant="outline" size="icon" className="h-8 w-8 text-destructive-600 hover:bg-destructive-100 border-destructive-200"><BadgeX className="h-4 w-4" /></Button>
+                          </>
+                        )}
+                      </div>
+                    </TableCell>
+                  </motion.tr>
+                ))}
+              </TableBody>
+            </Table>
+          </CardContent>
+        </Card>
+      )}
     </>
   )
 }

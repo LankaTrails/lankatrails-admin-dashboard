@@ -27,7 +27,10 @@ export const useAuth = () => {
 
   return {
     ...authState,
-    login: (email: string, password: string) => dispatch(login({ email, password })),
+    login: async (email: string, password: string) => {
+      const result = await dispatch(login({ email, password }));
+      return result.payload;
+    },
     logout: () => dispatch(logoutUser()),
     restoreSession
   };

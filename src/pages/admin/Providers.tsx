@@ -5,58 +5,23 @@ import { Card, CardContent, CardDescription, CardHeader, CardTitle } from "@/com
 import { DropdownMenu, DropdownMenuContent, DropdownMenuCheckboxItem, DropdownMenuLabel, DropdownMenuSeparator, DropdownMenuTrigger } from "@/components/ui/dropdown-menu";
 import { Input } from "@/components/ui/input";
 import { Table, TableBody, TableCell, TableHead, TableHeader, TableRow } from "@/components/ui/table";
-import { BadgeCheck, BadgeX, Eye, ListFilter, Search, Loader2 } from 'lucide-react';
+import { Alert, AlertDescription, AlertTitle } from "@/components/ui/alert";
+import { BadgeCheck, BadgeX, Eye, ListFilter, Search, Loader2, AlertCircle } from 'lucide-react';
 import { motion } from 'framer-motion';
 import { useNavigate } from "react-router-dom";
 import { getAllProviders, ProviderBasicInfo } from '@/services/providerService';
 
-
-const Providers = () => {
-    const [searchTerm, setSearchTerm] = useState('');
-    const [statusFilters, setStatusFilters] = useState({ ACTIVE: true, PENDING: true, DISABLED: true });
-    const [allProviders, setAllProviders] = useState<ProviderBasicInfo[]>([]);
-    const [isLoading, setIsLoading] = useState(true);
-import { LicenseDTO } from '@/types/provider';
-import { useToast } from "@/components/ui/use-toast";
-import { loadAllLicenses } from '@/services/licenseSection';
-
 const Providers = () => {
     const [searchTerm, setSearchTerm] = useState('');
     const [statusFilters, setStatusFilters] = useState({ 
-        PENDING: true,
-        RENEWAL: true 
+        ACTIVE: true, 
+        PENDING: true, 
+        DISABLED: true 
     });
-    const [licenses, setLicenses] = useState<LicenseDTO[]>([]);
-    const [loading, setLoading] = useState(true);
+    const [allProviders, setAllProviders] = useState<ProviderBasicInfo[]>([]);
+    const [isLoading, setIsLoading] = useState(true);
     const [error, setError] = useState<string | null>(null);
     const navigate = useNavigate();
-    const { toast } = useToast();
-
-    // Load licenses from API
-    useEffect(() => {
-        const fetchLicenses = async () => {
-            try {
-                setLoading(true);
-                setError(null);
-                const licensesData = await loadAllLicenses();
-                console.log('Licenses loaded:', licensesData);
-                setLicenses(licensesData);
-            } catch (error: any) {
-                console.error('Error loading licenses:', error);
-                setError(error.userMessage || error.message || 'Failed to load licenses');
-                
-                toast({
-                    title: "Error",
-                    description: error.userMessage || "Failed to load licenses",
-                    variant: "destructive",
-                });
-            } finally {
-                setLoading(false);
-            }
-        };
-
-        fetchLicenses();
-    }, [toast]);
 
     useEffect(() => {
         loadProviders();
@@ -64,12 +29,37 @@ const Providers = () => {
 
     const loadProviders = async () => {
         try {
+            console.log('🔄 Loading providers...');
             setIsLoading(true);
             setError(null);
             const providers = await getAllProviders();
+            console.log('✅ Providers loaded successfully:', providers);
             setAllProviders(providers);
         } catch (error: any) {
-            setError(error.userMessage || error.message || 'Failed to load providers');
+            console.error('❌ Error loading providers:', error);
+            console.error('Error details:', {
+                userMessage: error.userMessage,
+                message: error.message,
+                code: error.code,
+                response: error.response,
+                request: error.request
+            });
+            
+            let errorMessage = 'Failed to load providers';
+            
+            if (error.response) {
+                // Server responded with error
+                errorMessage = error.userMessage || error.response.data?.message || `Server error: ${error.response.status}`;
+            } else if (error.request) {
+                // No response from server
+                errorMessage = 'Cannot connect to server. Make sure the backend is running on http://localhost:8080';
+            } else {
+                // Other errors
+                errorMessage = error.message || 'An unexpected error occurred';
+            }
+            
+            console.error('Final error message:', errorMessage);
+            setError(errorMessage);
         } finally {
             setIsLoading(false);
         }
@@ -79,110 +69,24 @@ const Providers = () => {
         setStatusFilters(prev => ({ ...prev, [status]: !prev[status as keyof typeof statusFilters] }));
     };
 
-    // Format date for display
-    const formatDate = (dateString: string | null) => {
-        if (!dateString) return 'Not set';
-        try {
-            const date = new Date(dateString);
-            return date.toLocaleDateString('en-US', {
-                year: 'numeric',
-                month: 'short',
-                day: 'numeric'
-            });
-        } catch (error) {
-            return 'Invalid Date';
-        }
-    };
-
-    // Get badge variant and style based on status
-    const getBadgeConfig = (status: string) => {
-        switch (status) {
-            case 'APPROVED':
-                return {
-                    variant: 'default' as const,
-                    className: 'bg-green-600 hover:bg-green-600/80',
-                    text: 'Approved'
-                };
-            case 'PENDING':
-                return {
-                    variant: 'secondary' as const,
-                    className: 'bg-yellow-600 hover:bg-yellow-600/80',
-                    text: 'Pending'
-                };
-            case 'REJECTED':
-                return {
-                    variant: 'destructive' as const,
-                    className: 'bg-red-600 hover:bg-red-600/80',
-                    text: 'Rejected'
-                };
-            case 'RENEWAL':
-                return {
-                    variant: 'default' as const,
-                    className: 'bg-blue-600 hover:bg-blue-600/80',
-                    text: 'Renewal'
-                };
-            default:
-                return {
-                    variant: 'secondary' as const,
-                    className: 'bg-gray-600 hover:bg-gray-600/80',
-                    text: status
-                };
-        }
-    };
-
-    // Safe search filter that handles null values
-    const filteredLicenses = licenses
-        .filter(license => statusFilters[license.status as keyof typeof statusFilters])
-        .filter(license => {
+    // Filter providers by status and search term
+    const filteredProviders = allProviders
+        .filter(provider => statusFilters[provider.status as keyof typeof statusFilters])
+        .filter(provider => {
             if (!searchTerm) return true;
-            
             const searchLower = searchTerm.toLowerCase();
-            
-            // Safely check each field for search term
-            const licenseNumberMatch = license.licenseNumber?.toLowerCase().includes(searchLower) || false;
-            const businessNameMatch = license.businessName?.toLowerCase().includes(searchLower) || false;
-            const categoryNameMatch = license.categoryName?.toLowerCase().includes(searchLower) || false;
-            const nestedCategoryMatch = license.category?.categoryName?.toLowerCase().includes(searchLower) || false;
-            
-            return licenseNumberMatch || businessNameMatch || categoryNameMatch || nestedCategoryMatch;
+            return (
+                provider.businessName?.toLowerCase().includes(searchLower) ||
+                provider.email?.toLowerCase().includes(searchLower) ||
+                provider.businessType?.toLowerCase().includes(searchLower) ||
+                provider.city?.toLowerCase().includes(searchLower)
+            );
         });
 
     const itemVariants = { 
         hidden: { y: 20, opacity: 0 }, 
         visible: { y: 0, opacity: 1, transition: { duration: 0.5 } } 
     };
-
-    if (loading) {
-        return (
-            <Card>
-                <CardContent className="flex items-center justify-center py-12">
-                    <div className="flex flex-col items-center gap-4">
-                        <Loader2 className="h-8 w-8 animate-spin text-primary" />
-                        <p className="text-muted-foreground">Loading licenses...</p>
-                    </div>
-                </CardContent>
-            </Card>
-        );
-    }
-
-    if (error) {
-        return (
-            <Card>
-                <CardContent className="flex items-center justify-center py-12">
-                    <div className="flex flex-col items-center gap-4 text-destructive">
-                        <BadgeX className="h-8 w-8" />
-                        <p>Error loading licenses: {error}</p>
-                        <Button 
-                            variant="outline" 
-                            onClick={() => window.location.reload()}
-                        >
-                            Try Again
-                        </Button>
-                    </div>
-                </CardContent>
-            </Card>
-        );
-    }
 
     return (
         <motion.div initial="hidden" animate="visible" variants={{ visible: { transition: { staggerChildren: 0.1 } } }}>
@@ -228,10 +132,16 @@ const Providers = () => {
                             <span className="ml-3 text-gray-600">Loading providers...</span>
                         </div>
                     ) : error ? (
-                        <div className="text-center py-12">
-                            <p className="text-red-600 mb-4">{error}</p>
-                            <Button onClick={loadProviders}>Retry</Button>
-                        </div>
+                        <Alert variant="destructive" className="mb-6">
+                            <AlertCircle className="h-4 w-4" />
+                            <AlertTitle>Error</AlertTitle>
+                            <AlertDescription>
+                                {error}
+                                <div className="mt-4">
+                                    <Button variant="outline" onClick={loadProviders}>Try Again</Button>
+                                </div>
+                            </AlertDescription>
+                        </Alert>
                     ) : (
                     <motion.div initial="hidden" animate="visible" variants={{ visible: { transition: { staggerChildren: 0.05 } } }}>
                         <Table>

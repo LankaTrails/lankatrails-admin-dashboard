@@ -9,6 +9,7 @@ import { motion } from 'framer-motion';
 import Header from '@/components/Header';
 import { useAuth } from '@/hooks/useAuth';
 import { useAppSelector } from '@/store';
+import type { User } from '@/types/authTypes';
 
 
 const Login = () => {
@@ -25,9 +26,9 @@ const Login = () => {
     // Handle login logic here
     try {
       
-       const User = await login(email,password);
-      //  console.log("redux ",user.role);
-       if (user.role==='ROLE_ADMIN'){
+       const loggedInUser = await login(email,password) as User;
+      //  console.log("redux ",loggedInUser.role);
+       if (loggedInUser && loggedInUser.role==='ROLE_ADMIN'){
           
           navigate('/admin');
        }else{
