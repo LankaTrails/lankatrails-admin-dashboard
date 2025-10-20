@@ -19,4 +19,10 @@ export interface Complaint {
     bookingId : string;
     investigationStartedDate : string;
     faultType: String;
+    paidAmount : String;
+    refundReason:String;
+    refundStatus:String;
+    complaintImgs: string[];
+    adminToCustomer:String;
+    adminToTourist:String;
 }

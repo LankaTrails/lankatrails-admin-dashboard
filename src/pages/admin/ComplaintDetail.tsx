@@ -8,7 +8,7 @@ import { useState } from "react";
 import { Textarea } from "@/components/ui/textarea";
 import { Complaint } from "@/types/complaints";
 import { useEffect } from "react";
-import { findComplaintById, updateComplaintStatus, updateComplaintResult } from "@/services/complaintSection";
+import { findComplaintById, updateComplaintStatus, updateComplaintResult, updateRefundStatus, sendFeedbackToProvider, sendFeedbackToTourist } from "@/services/complaintSection";
 import { Checkbox } from "@/components/ui/checkbox";
 import { Label } from "@/components/ui/label";
 import {
@@ -29,16 +29,25 @@ interface ComplaintResult {
   refundReason?: string;
 }
 
+interface Message {
+  sender: string;
+  message: string;
+  date: string;
+  type: 'admin' | 'supplier' | 'tourist';
+}
+
 const ComplaintDetail = () => {
   const { id } = useParams();
   const navigate = useNavigate();
   const { toast } = useToast();
   const [reply, setReply] = useState("");
+  const [supplierMessage, setSupplierMessage] = useState("");
+  const [touristMessage, setTouristMessage] = useState("");
   const [complaint, setComplaint] = useState<Complaint | null>(null);
   const [isLoading, setIsLoading] = useState(true);
-  const [replies, setReplies] = useState([
-    { sender: "Admin", message: "Thank you for your feedback. We are looking into this.", date: "2023-08-16" },
-    { sender: "John Doe", message: "Please resolve this as soon as possible.", date: "2023-08-15" },
+  const [replies, setReplies] = useState<Message[]>([
+    { sender: "Admin", message: "Thank you for your feedback. We are looking into this.", date: "2023-08-16", type: 'admin' },
+    { sender: "John Doe", message: "Please resolve this as soon as possible.", date: "2023-08-15", type: 'tourist' },
   ]);
   const [resolutionStatus, setResolutionStatus] = useState({
     inProgress: false,
@@ -56,15 +65,16 @@ const ComplaintDetail = () => {
   const [refundAmount, setRefundAmount] = useState("");
   const [refundReason, setRefundReason] = useState("");
   const [refundProcessed, setRefundProcessed] = useState(false);
+  const [refundReasonProcessed, setRefundReasonProcessed] = useState(false);
   const [selectedImage, setSelectedImage] = useState<string | null>(null);
   const [isSaving, setIsSaving] = useState(false);
   const [isSavingFault, setIsSavingFault] = useState(false);
-
-  const complaintImages = [
-    "https://images.unsplash.com/photo-1551963831-b3b1ca40c98e",
-    "https://images.unsplash.com/photo-1551782450-a2132b4ba21d",
-    "https://images.unsplash.com/photo-1522770179533-24471fcdba45"
-  ];
+  // Add complaintResultValue to state
+  const [complaintResultValue, setComplaintResultValue] = useState("");
+  // State for complaint images
+  const [complaintImages, setComplaintImages] = useState<string[]>([]);
+  // State for image loading errors
+  const [imageErrors, setImageErrors] = useState<{[key: number]: boolean}>({});
 
   useEffect(() => {
     const fetchComplaint = async () => {
@@ -73,20 +83,78 @@ const ComplaintDetail = () => {
         const data = await findComplaintById(id);
         setComplaint(data);
         console.log("Fetched complaint:", data);
-        
-        // If complaint already has resolution status, set it
-        if (data.faultType) {
+
+        // Check for investigation status
+        if (data.complaintStatus && data.complaintStatus !== "PENDING") {
           setResolutionStatus(prev => ({
             ...prev,
-            faultType: data.faultType as "PROVIDER" | "APP" | "REJECT"
+            inProgress: true,
+            notes: data.investigationStartedDate ? `Investigation started on ${new Date(data.investigationStartedDate).toLocaleDateString()}` : "Investigation in progress"
           }));
           setSavedResolutionStatus(prev => ({
             ...prev,
-            faultType: data.faultType as "PROVIDER" | "APP" | "REJECT"
+            inProgress: true,
+            notes: data.investigationStartedDate ? `Investigation started on ${new Date(data.investigationStartedDate).toLocaleDateString()}` : "Investigation in progress"
           }));
-          setFaultClassificationSaved(true);
+          setResolutionSaved(true);
+          setDetailsLoaded(true);
         }
 
+        // Check for complaint result and set fault type
+        if (data.complaintResult != null) {
+          // Map complaint result to fault type
+          let faultType: "PROVIDER" | "APP" | "REJECT" = "REJECT";
+          let resultValue = "";
+          
+          if (data.complaintResult === "REFUND_FROM_PROVIDER") {
+            faultType = "PROVIDER";
+            resultValue = "REFUND_FROM_PROVIDER";
+          } else if (data.complaintResult === "REFUND_FROM_COMPANY") {
+            faultType = "APP";
+            resultValue = "REFUND_FROM_COMPANY";
+          } else if (data.complaintResult === "REJECT") {
+            faultType = "REJECT";
+            resultValue = "REJECT";
+          }
+          
+          setFaultClassificationSaved(true);
+          // Set the fault type from complaintResult
+          setResolutionStatus(prev => ({
+            ...prev,
+            faultType: faultType
+          }));
+          setSavedResolutionStatus(prev => ({
+            ...prev,
+            faultType: faultType
+          }));
+          // Set the complaint result value
+          setComplaintResultValue(resultValue);
+          
+          // Set refund amount from paidAmount when complaint result exists
+          if (data.paidAmount) {
+            setRefundAmount(data.paidAmount.toString());
+          }
+        }
+
+        // Check if refundReason exists and is not null/empty
+        if (data.refundReason && data.refundReason.trim() !== "") {
+          setRefundReason(String(data.refundReason));
+          setRefundReasonProcessed(true); // Disable the textarea
+        }
+
+        // Check if refund has already been processed
+        if (data.refundStatus === 'REFUNDED') {
+          setRefundProcessed(true);
+        }
+
+        // Load complaint images from the database
+        if (data.complaintImgs && Array.isArray(data.complaintImgs) && data.complaintImgs.length > 0) {
+          setComplaintImages(data.complaintImgs);
+          console.log("Loaded complaint images:", data.complaintImgs);
+        } else {
+          setComplaintImages([]);
+          console.log("No complaint images found");
+        }
         
       } catch (error) {
         console.error('Error fetching complaint:', error);
@@ -106,12 +174,82 @@ const ComplaintDetail = () => {
   const handleSendReply = () => {
     if (reply.trim()) {
       setReplies([
-        { sender: "Admin", message: reply, date: new Date().toISOString().slice(0, 10) },
+        { sender: "Admin", message: reply, date: new Date().toISOString().slice(0, 10), type: 'admin' },
         ...replies,
       ]);
       setReply("");
     }
   };
+
+ const handleSendSupplierMessage = async () => {
+  if (supplierMessage.trim()) {
+    try {
+      const updateData={
+        adminToProvider: supplierMessage
+      }
+      // First, send the feedback to the provider via API
+      await sendFeedbackToProvider(complaint.complaintId, {
+       updateData
+      });
+
+      // Then update the local state to show the message in the UI
+      setReplies([
+        { sender: "Supplier", message: supplierMessage, date: new Date().toISOString().slice(0, 10), type: 'supplier' },
+        ...replies,
+      ]);
+      setSupplierMessage("");
+
+      // Show success toast
+      toast({
+        description: "Message sent to supplier successfully",
+        variant: "default",
+      });
+
+    } catch (error) {
+      console.error('Error sending feedback to provider:', error);
+      toast({
+        title: "Error",
+        description: "Failed to send message to supplier",
+        variant: "destructive",
+      });
+    }
+  }
+};
+
+ const handleSendTouristMessage = async () => {
+  if (touristMessage.trim()) {
+    try {
+      const updateData={
+        adminToTourist: touristMessage
+      }
+      // First, send the feedback to the tourist via API
+      await sendFeedbackToTourist(complaint.complaintId, {
+       updateData
+      });
+
+      // Then update the local state to show the message in the UI
+      setReplies([
+        { sender: "Tourist", message: touristMessage, date: new Date().toISOString().slice(0, 10), type: 'tourist' },
+        ...replies,
+      ]);
+      setTouristMessage("");
+
+      // Show success toast
+      toast({
+        description: "Message sent to tourist successfully",
+        variant: "default",
+      });
+
+    } catch (error) {
+      console.error('Error sending feedback to tourist:', error);
+      toast({
+        title: "Error",
+        description: "Failed to send message to tourist",
+        variant: "destructive",
+      });
+    }
+  }
+};
 
   const handleResolutionChange = (inProgress: boolean) => {
     setResolutionStatus(prev => ({
@@ -131,6 +269,12 @@ const ComplaintDetail = () => {
       }));
       setResolutionSaved(false);
       setFaultClassificationSaved(false);
+      setRefundAmount(""); // Reset refund amount when resolution is turned off
+      setComplaintResultValue(""); // Reset complaint result value
+      setRefundReason(""); // Reset refund reason
+      setRefundReasonProcessed(false); // Reset refund reason processed status
+      setRefundProcessed(false); // Reset refund processed status
+      setImageErrors({}); // Reset image errors
     }
   };
 
@@ -191,27 +335,35 @@ const ComplaintDetail = () => {
     
     setIsSavingFault(true);
     try {
-      // Map fault type to complaint result enum
-      let complaintResultValue: string;
+      let resultValue = "";
+      
       if (resolutionStatus.faultType === "APP") {
-        complaintResultValue = "REFUND_FROM_COMPANY";
+        resultValue = "REFUND_FROM_COMPANY";
       } else if (resolutionStatus.faultType === "PROVIDER") {
-        complaintResultValue = "REFUND_FROM_PROVIDER";
+        resultValue = "REFUND_FROM_PROVIDER";
       } else {
-        complaintResultValue = "REJECT";
+        resultValue = "REJECT";
       }
 
-      // Call API to update complaint result
-      const updatedComplaint = await updateComplaintResult(complaint.complaintId, complaintResultValue);
+      const updateData = {
+        complaintResult: resultValue
+      };
       
-      // Update local complaint data
-      setComplaint(prev => prev ? { ...prev, complaintResult: complaintResultValue } : null);
+      const updatedComplaint = await updateComplaintResult(complaint.complaintId, updateData);
       
       // Update the saved resolution status with the fault type
       setSavedResolutionStatus(prev => ({
         ...prev,
         faultType: resolutionStatus.faultType
       }));
+      
+      // Set the complaint result value in state
+      setComplaintResultValue(resultValue);
+      
+      // Set refund amount when fault classification is saved (only for non-REJECT types)
+      if (resolutionStatus.faultType !== "REJECT" && complaint.paidAmount) {
+        setRefundAmount(complaint.paidAmount.toString());
+      }
       
       // Mark fault classification as saved
       setFaultClassificationSaved(true);
@@ -233,17 +385,81 @@ const ComplaintDetail = () => {
     }
   };
 
-  const handleProcessRefund = () => {
+  const handleProcessRefund = async () => {
     if (!refundAmount || !refundReason) {
-      alert("Please fill in both refund amount and reason.");
+      toast({
+        title: "",
+        description: "Please fill in refund reason.",
+        variant: "destructive",
+      });
       return;
     }
     
-    // Here you would typically make an API call to process the refund
-    console.log("Processing refund:", { amount: refundAmount, reason: refundReason });
+    // Check if complaintResultValue is set
+    if (!complaintResultValue) {
+      toast({
+        title: "Error",
+        description: "Fault classification not saved. Please save fault classification first.",
+        variant: "destructive",
+      });
+      return;
+    }
     
-    setRefundProcessed(true);
-    alert(`Refund of LKR ${refundAmount} processed successfully.`);
+    try {
+      const updateData = {
+        complaintResult: complaintResultValue,
+        refundStatus: 'REFUNDED',
+        refundReason: refundReason
+      };
+
+      console.log("Refund update data:", updateData);
+      
+      const makeRefund = await updateRefundStatus(complaint.complaintId, updateData);
+      
+      toast({
+        description: "Refund processed successfully",
+        variant: "default",
+      });
+      
+      setRefundReasonProcessed(true);
+      setRefundProcessed(true);
+      
+    } catch (error) {
+      toast({
+        title: "Error",
+        description: "Failed to process refund",
+        variant: "destructive",
+      });
+      console.error("Refund processing error:", error);
+    }
+  };
+
+  // Handle image loading errors
+  const handleImageError = (index: number) => {
+    setImageErrors(prev => ({
+      ...prev,
+      [index]: true
+    }));
+  };
+
+  // Helper function to check if investigation has started
+  const hasInvestigationStarted = () => {
+    return complaint?.investigationStartedDate && complaint.investigationStartedDate !== "null";
+  };
+
+  // Get messages by type
+  const adminReplies = replies.filter(r => r.type === 'admin');
+  const supplierReplies = replies.filter(r => r.type === 'supplier');
+  const touristReplies = replies.filter(r => r.type === 'tourist');
+
+  // Helper function to get badge color based on sender type
+  const getMessageBadgeColor = (type: string) => {
+    switch (type) {
+      case 'admin': return 'bg-blue-100 text-blue-800 border-blue-200';
+      case 'supplier': return 'bg-green-100 text-green-800 border-green-200';
+      case 'tourist': return 'bg-purple-100 text-purple-800 border-purple-200';
+      default: return 'bg-gray-100 text-gray-800 border-gray-200';
+    }
   };
 
   if (isLoading) {
@@ -262,8 +478,6 @@ const ComplaintDetail = () => {
       </div>
     );
   }
-
-  const adminReplies = replies.filter(r => r.sender === 'Admin');
 
   return (
     <motion.div initial={{ opacity: 0, y: 40 }} animate={{ opacity: 1, y: 0 }} transition={{ duration: 0.5 }} className="w-full mx-auto">
@@ -295,12 +509,26 @@ const ComplaintDetail = () => {
           <div className="flex-1">
             <h1 className="text-3xl font-bold text-white drop-shadow-lg flex items-center gap-4">
               {complaint.touristEmail}
-              <Badge variant={savedResolutionStatus.inProgress ? 'secondary' : 'destructive'} className="capitalize text-base px-4 py-2 ml-2 shadow-md">
-                {savedResolutionStatus.inProgress ? 'In Progress' : 'Pending'}
+              <Badge 
+                variant={
+                  complaint?.complaintStatus === 'RESOLVED' ? 'default' :
+                  savedResolutionStatus.inProgress ? 'secondary' : 'destructive'
+                } 
+                className="capitalize text-base px-4 py-2 ml-2 shadow-md"
+              >
+                {
+                  complaint?.complaintStatus === 'RESOLVED' ? 'Resolved' :
+                  savedResolutionStatus.inProgress ? 'In Progress' : 'Pending'
+                }
               </Badge>
               {savedResolutionStatus.faultType && (
                 <Badge variant="outline" className="capitalize text-base px-4 py-2 ml-2 shadow-md bg-white text-primary">
                   Fault: {savedResolutionStatus.faultType === 'PROVIDER' ? 'Provider' : savedResolutionStatus.faultType === 'APP' ? 'App' : 'Rejected'}
+                </Badge>
+              )}
+              {refundProcessed && (
+                <Badge variant="default" className="capitalize text-base px-4 py-2 ml-2 shadow-md bg-green-500 text-white">
+                  Refund Processed
                 </Badge>
               )}
             </h1>
@@ -329,13 +557,10 @@ const ComplaintDetail = () => {
           </div>
 
           {/* Resolution Section */}
-          {complaint.investigationStartedDate == "null" && (
-          <div className="bg-gradient-to-br from-info-50 to-white rounded-xl p-6 border-2 border-info-200 shadow-md">
-            <h3 className="text-lg font-semibold mb-4 text-gray-800 flex items-center gap-2">
-              <div className="p-2 bg-gradient-info rounded-lg">
-                <CheckCircle className="h-5 w-5 text-white" />
-              </div>
-              Resolution Process
+          {!hasInvestigationStarted() && (
+          <div className="bg-blue-50 rounded-lg p-6 border-2 border-blue-200 shadow-inner">
+            <h3 className="text-lg font-semibold mb-4 text-blue-800 flex items-center gap-2">
+              <CheckCircle className="h-5 w-5 text-blue-600" /> Resolution Process
             </h3>
             
             <div className="space-y-4">
@@ -381,14 +606,11 @@ const ComplaintDetail = () => {
                 </div>
               )}
             </div>
-
-
-
           </div>
           )}
           
-          {/* Only show the rest of the details after Save Resolution Status is clicked */}
-          {complaint.investigationStartedDate!="null" ? (
+          {/* Only show the rest of the details after investigation has started */}
+          {hasInvestigationStarted() ? (
             <>
               {/* Description */}
               <div>
@@ -405,11 +627,9 @@ const ComplaintDetail = () => {
 
               {/* Complaint Images Section */}
               <div>
-                <h3 className="text-lg font-semibold mb-4 text-gray-800 flex items-center gap-2">
-                  <div className="p-2 bg-gradient-secondary rounded-lg">
-                    <ImageIcon className="h-5 w-5 text-white" />
-                  </div>
-                  Images Attached
+                <h3 className="text-lg font-semibold mb-4 text-primary-700 flex items-center gap-2">
+                  <ImageIcon className="h-5 w-5 text-primary" /> 
+                  Images Attached {complaintImages.length > 0 && `(${complaintImages.length})`}
                 </h3>
                 <div className="grid grid-cols-1 md:grid-cols-2 lg:grid-cols-3 gap-4">
                   {complaintImages.map((image, index) => (
@@ -417,15 +637,25 @@ const ComplaintDetail = () => {
                       key={index} 
                       className="relative group cursor-pointer overflow-hidden rounded-lg border-2 border-primary/20 shadow-md"
                       whileHover={{ scale: 1.02 }}
-                      onClick={() => setSelectedImage(image)}
+                      onClick={() => !imageErrors[index] && setSelectedImage(image)}
                     >
-                      <img 
-                        src={image} 
-                        alt={`Complaint evidence ${index + 1}`} 
-                        className="w-full h-48 object-cover transition-transform group-hover:scale-105"
-                      />
+                      {imageErrors[index] ? (
+                        <div className="w-full h-48 bg-gray-200 flex flex-col items-center justify-center text-gray-500">
+                          <ImageIcon className="h-12 w-12 mb-2" />
+                          <p className="text-sm">Image not available</p>
+                        </div>
+                      ) : (
+                        <img 
+                          src={image} 
+                          alt={`Complaint evidence ${index + 1}`} 
+                          className="w-full h-48 object-cover transition-transform group-hover:scale-105"
+                          onError={() => handleImageError(index)}
+                        />
+                      )}
                       <div className="absolute inset-0 bg-black/40 opacity-0 group-hover:opacity-100 transition-opacity flex items-center justify-center">
-                        <p className="text-white font-medium">Click to enlarge</p>
+                        <p className="text-white font-medium">
+                          {imageErrors[index] ? 'Image unavailable' : 'Click to enlarge'}
+                        </p>
                       </div>
                     </motion.div>
                   ))}
@@ -456,7 +686,11 @@ const ComplaintDetail = () => {
                       disabled={faultClassificationSaved}
                     >
                       <SelectTrigger className="w-full">
-                        <SelectValue placeholder="Select fault type" />
+                        <SelectValue placeholder={
+                          faultClassificationSaved 
+                            ? `Saved: ${savedResolutionStatus.faultType === 'PROVIDER' ? 'Provider Fault' : savedResolutionStatus.faultType === 'APP' ? 'App Fault' : 'Reject Complaint'}`
+                            : "Select fault type"
+                        } />
                       </SelectTrigger>
                       <SelectContent>
                         <SelectItem value="PROVIDER">Provider Fault</SelectItem>
@@ -475,7 +709,7 @@ const ComplaintDetail = () => {
                       {isSavingFault ? "Saving..." : "Save Fault Classification"}
                     </Button>
                   )}
-
+                 
                   {faultClassificationSaved && (
                     <div className="mt-4 p-3 bg-green-100 text-green-800 rounded-md border border-green-200">
                       <CheckCircle className="h-5 w-5 inline mr-2" />
@@ -505,7 +739,7 @@ const ComplaintDetail = () => {
                         value={refundAmount}
                         onChange={(e) => setRefundAmount(e.target.value)}
                         className="w-full"
-                        disabled={refundProcessed}
+                        disabled={true}
                       />
                     </div>
 
@@ -517,15 +751,20 @@ const ComplaintDetail = () => {
                         value={refundReason}
                         onChange={(e) => setRefundReason(e.target.value)}
                         className="w-full min-h-[80px]"
-                        disabled={refundProcessed}
+                        disabled={refundReasonProcessed || refundProcessed}
                       />
+                      {refundReasonProcessed && (
+                        <p className="text-sm text-muted-foreground mt-1">
+                          Refund reason has been previously set and cannot be modified.
+                        </p>
+                      )}
                     </div>
 
                     {!refundProcessed && (
                       <Button 
                         onClick={handleProcessRefund} 
-                        className="mt-4 bg-gradient-success hover:opacity-90 border-0 shadow-md"
-                        disabled={!refundAmount || !refundReason}
+                        className="mt-4 bg-green-600 hover:bg-green-700"
+                        disabled={!refundAmount || !refundReason || refundReasonProcessed || !complaintResultValue}
                       >
                         Process Refund
                       </Button>
@@ -543,39 +782,60 @@ const ComplaintDetail = () => {
 
               {/* Messaging Section */}
               <div className="mt-8">
-                <h3 className="text-lg font-semibold mb-3 text-gray-800 flex items-center gap-2">
-                  <div className="p-2 bg-gradient-secondary rounded-lg">
-                    <MessageSquare className="h-5 w-5 text-white" />
-                  </div>
-                  Replies
+                <h3 className="text-lg font-semibold mb-4 text-primary-700 flex items-center gap-2">
+                  <MessageSquare className="h-5 w-5 text-primary" /> 
+                  Feedback
                 </h3>
-                <div className="bg-gradient-to-br from-secondary-50 to-white rounded-xl p-4 border-2 border-secondary-100 shadow-md">
-                  <div className="space-y-4 mb-6">
-                    {adminReplies.length === 0 && <div className="text-gray-500">No replies yet.</div>}
-                    {adminReplies.map((r, idx) => (
-                      <motion.div key={idx} initial={{ opacity: 0, y: 10 }} animate={{ opacity: 1, y: 0 }} transition={{ delay: 0.05 * idx }} className={`flex flex-col items-end`}>
-                        <div className={`rounded-lg px-4 py-2 shadow bg-primary/10 text-primary-900`}>
-                          <span className="block font-medium flex items-center gap-1">
-                            <User className="h-4 w-4 text-primary" /> {r.sender}
-                          </span>
-                          <span className="block mt-1">{r.message}</span>
-                        </div>
-                        <span className="text-xs text-gray-400 mt-1">{r.date}</span>
-                      </motion.div>
-                    ))}
+                <div className="bg-primary/5 rounded-lg p-4 border border-primary/10 shadow-inner">
+                  
+
+                  {/* Supplier Message Section */}
+                  <div className="border-t border-primary/10 pt-4 mt-4">
+                    <h4 className="font-medium text-green-700 mb-3 flex items-center gap-2">
+                      <User className="h-4 w-4" /> Message to Supplier
+                    </h4>
+                    <div className="flex flex-col md:flex-row gap-4 items-end">
+                      <Textarea
+                        value={supplierMessage}
+                        onChange={e => setSupplierMessage(e.target.value)}
+                        placeholder="Write a message to the supplier..."
+                        className="w-full md:w-2/3 min-h-[60px]"
+                      />
+                      <Button 
+                        onClick={handleSendSupplierMessage} 
+                        className="mt-2 md:mt-0 bg-green-600 hover:bg-green-700" 
+                        disabled={!supplierMessage.trim()}
+                      >
+                        Send to Supplier
+                      </Button>
+                    </div>
                   </div>
-                  <div className="flex flex-col md:flex-row gap-4 items-end border-t border-primary/10 pt-4 mt-4">
-                    <Textarea
-                      value={reply}
-                      onChange={e => setReply(e.target.value)}
-                      placeholder="Write a reply as admin..."
-                      className="w-full md:w-2/3 min-h-[60px]"
-                    />
-                    <Button onClick={handleSendReply} className="mt-2 md:mt-0" disabled={!reply.trim()}>
-                      Send
-                    </Button>
+
+                  {/* Tourist Message Section */}
+                  <div className="border-t border-primary/10 pt-4 mt-4">
+                    <h4 className="font-medium text-purple-700 mb-3 flex items-center gap-2">
+                      <User className="h-4 w-4" /> Message to Tourist
+                    </h4>
+                    <div className="flex flex-col md:flex-row gap-4 items-end">
+                      <Textarea
+                        value={touristMessage}
+                        onChange={e => setTouristMessage(e.target.value)}
+                        placeholder="Write a message to the tourist..."
+                        className="w-full md:w-2/3 min-h-[60px]"
+                      />
+                      <Button 
+                        onClick={handleSendTouristMessage} 
+                        className="mt-2 md:mt-0 bg-purple-600 hover:bg-purple-700" 
+                        disabled={!touristMessage.trim()}
+                      >
+                        Send to Tourist
+                      </Button>
+                    </div>
                   </div>
-                  <div className="text-xs text-gray-500 mt-2">Only admins can reply to this complaint.</div>
+
+                  <div className="text-xs text-gray-500 mt-4 text-center">
+                    All messages are sent from the admin perspective
+                  </div>
                 </div>
               </div>
             </>
@@ -590,4 +850,4 @@ const ComplaintDetail = () => {
   );
 };
 
-export default ComplaintDetail; 
+export default ComplaintDetail;
