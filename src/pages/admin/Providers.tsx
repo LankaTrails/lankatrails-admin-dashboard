@@ -5,10 +5,9 @@ import { Card, CardContent, CardDescription, CardHeader, CardTitle } from "@/com
 import { DropdownMenu, DropdownMenuContent, DropdownMenuCheckboxItem, DropdownMenuLabel, DropdownMenuSeparator, DropdownMenuTrigger } from "@/components/ui/dropdown-menu";
 import { Input } from "@/components/ui/input";
 import { Table, TableBody, TableCell, TableHead, TableHeader, TableRow } from "@/components/ui/table";
-import { BadgeCheck, BadgeX, Eye, ListFilter, Search, CreditCard, Loader2 } from 'lucide-react';
+import { BadgeCheck, BadgeX, Eye, ListFilter, Search, Loader2 } from 'lucide-react';
 import { motion } from 'framer-motion';
 import { useNavigate } from "react-router-dom";
-import { Tooltip, TooltipContent, TooltipProvider, TooltipTrigger } from "@/components/ui/tooltip";
 import { getAllProviders, ProviderBasicInfo } from '@/services/providerService';
 
 
@@ -109,14 +108,13 @@ const Providers = () => {
                                     <TableHead>Status</TableHead>
                                     <TableHead className="hidden lg:table-cell">Location</TableHead>
                                     <TableHead className="hidden lg:table-cell">Registration No.</TableHead>
-                                    <TableHead className="text-center">Payment</TableHead>
                                     <TableHead className="text-right">Actions</TableHead>
                                 </TableRow>
                             </TableHeader>
                             <TableBody>
                                 {filteredProviders.length === 0 ? (
                                     <TableRow>
-                                        <TableCell colSpan={7} className="text-center py-8 text-gray-500">
+                                        <TableCell colSpan={6} className="text-center py-8 text-gray-500">
                                             No providers found
                                         </TableCell>
                                     </TableRow>
@@ -138,18 +136,6 @@ const Providers = () => {
                                         </TableCell>
                                         <TableCell className="hidden lg:table-cell">{provider.city || 'N/A'}</TableCell>
                                         <TableCell className="hidden lg:table-cell">{provider.businessRegistrationNumber}</TableCell>
-                                        <TableCell className="text-center">
-                                            <TooltipProvider>
-                                                <Tooltip>
-                                                    <TooltipTrigger>
-                                                        <CreditCard className="h-5 w-5 text-gray-400 mx-auto" />
-                                                    </TooltipTrigger>
-                                                    <TooltipContent>
-                                                        <p>View payment account details in provider profile</p>
-                                                    </TooltipContent>
-                                                </Tooltip>
-                                            </TooltipProvider>
-                                        </TableCell>
                                         <TableCell className="text-right">
                                             <div className="flex items-center justify-end gap-2">
                                                 <Button 

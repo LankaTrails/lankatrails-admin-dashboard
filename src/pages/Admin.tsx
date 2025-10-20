@@ -3,11 +3,18 @@ import { Badge } from "@/components/ui/badge"
 import Header from "@/components/Header"
 import { NavLink, Outlet } from "react-router-dom"
 
-const navItems = [
+type NavItem = {
+  to: string;
+  label: string;
+  icon: React.ComponentType<{ className?: string }>;
+  badge?: number;
+};
+
+const navItems: NavItem[] = [
   { to: "/admin", label: "Dashboard", icon: Home },
-  { to: "/admin/providers", label: "Providers", icon: Users, badge: 6 },
+  { to: "/admin/providers", label: "Providers", icon: Users },
   { to: "/admin/bookings", label: "Bookings", icon: ShoppingCart },
-  { to: "/admin/complaints", label: "Complaints", icon: AlertCircle, badge: 3 },
+  { to: "/admin/complaints", label: "Complaints", icon: AlertCircle },
   { to: "/admin/analytics", label: "Analytics", icon: LineChart },
 ];
 
