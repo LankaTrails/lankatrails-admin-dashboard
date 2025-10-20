@@ -1,6 +1,6 @@
 import { Home, LineChart, ShoppingCart, Users, AlertCircle } from "lucide-react"
 import { Badge } from "@/components/ui/badge"
- 
+import Header from "@/components/Header"
 import { NavLink, Outlet } from "react-router-dom"
 
 const navItems = [
@@ -14,7 +14,9 @@ const navItems = [
 const AdminLayout = () => {
 
   return (
-    <div className="grid min-h-screen w-full md:grid-cols-[220px_1fr] lg:grid-cols-[280px_1fr]">
+    <>
+      <Header />
+      <div className="grid min-h-screen w-full md:grid-cols-[220px_1fr] lg:grid-cols-[280px_1fr]">
       <div className="hidden border-r border-primary/10 bg-gradient-to-b from-primary-50 via-white to-secondary-50 md:block shadow-lg">
         <div className="flex h-full max-h-screen flex-col gap-2">
           <div className="flex-1 pt-6">
@@ -57,6 +59,7 @@ const AdminLayout = () => {
         </main>
       </div>
     </div>
+    </>
   )
 }
 

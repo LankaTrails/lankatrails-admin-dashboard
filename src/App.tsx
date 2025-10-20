@@ -7,7 +7,6 @@ import { BrowserRouter, Routes, Route } from "react-router-dom";
 
 import { Provider as ReduxProvider } from "react-redux";
 import store from "@/store";
-import Header from "./components/Header";
 import AppRoutes from "./AppRoutes";
 const queryClient = new QueryClient();
 
@@ -21,7 +20,6 @@ const App = () => (
       <Sonner />
       <BrowserRouter>
         <div className="flex flex-col min-h-screen">
-          <Header/>
           <main className="flex-1">
             <AppRoutes />
           </main>
