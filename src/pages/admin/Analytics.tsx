@@ -1,57 +1,124 @@
 import { Card, CardContent, CardDescription, CardHeader, CardTitle } from "@/components/ui/card";
-import { DollarSign, Users, ShoppingCart, Activity } from 'lucide-react';
+import { DollarSign, Users, ShoppingCart, Activity, Loader2, AlertCircle } from 'lucide-react';
 import { motion } from 'framer-motion';
 import { BarChart, Bar, LineChart, Line, PieChart, Pie, Cell, XAxis, YAxis, CartesianGrid, Tooltip, Legend, ResponsiveContainer } from 'recharts';
+import { useState, useEffect } from 'react';
+import { getDashboardAnalytics, getProvidersByLocation, getProviderStats, DashboardAnalytics } from '@/services/analyticsService';
+import { Alert, AlertDescription } from '@/components/ui/alert';
 
-// Mock data for analytics
-const revenueData = [
-  { month: 'Jan', revenue: 4000 }, { month: 'Feb', revenue: 3000 }, { month: 'Mar', revenue: 5000 },
-  { month: 'Apr', revenue: 4500 }, { month: 'May', revenue: 6000 }, { month: 'Jun', revenue: 5500 },
-  { month: 'Jul', revenue: 7000 }, { month: 'Aug', revenue: 6500 },
-];
-
-const bookingsByCategoryData = [
-  { category: 'Accommodation', bookings: 120 },
-  { category: 'Experiences', bookings: 250 },
-  { category: 'Tours', bookings: 180 },
-  { category: 'Transport', bookings: 90 },
-  { category: 'Food', bookings: 150 },
-];
-
-const providerLocationData = [
-  { name: 'Western', value: 40 },
-  { name: 'Central', value: 25 },
-  { name: 'Southern', value: 30 },
-  { name: 'Uva', value: 15 },
-  { name: 'Other', value: 10 },
-];
-
-const COLORS = ['#0088FE', '#00C49F', '#FFBB28', '#FF8042', '#AF19FF'];
-
-const kpiData = [
-  { title: "Total Revenue", value: "$125,650", icon: DollarSign, change: "+15.2%", changeType: "increase" },
-  { title: "Total Bookings", value: "8,450", icon: ShoppingCart, change: "+12.1%", changeType: "increase" },
-  { title: "Active Providers", value: "1,250", icon: Users, change: "+5.8%", changeType: "increase" },
-  { title: "Conversion Rate", value: "4.8%", icon: Activity, change: "-0.5%", changeType: "decrease" },
-];
+const COLORS = ['#007E6A', '#8B5CF6', '#F59E0B', '#EF4444', '#3B82F6', '#10B981'];
 
 const Analytics = () => {
+  const [dashboardData, setDashboardData] = useState<DashboardAnalytics | null>(null);
+  const [providerStats, setProviderStats] = useState<any>(null);
+  const [locationData, setLocationData] = useState<any[]>([]);
+  const [isLoading, setIsLoading] = useState(true);
+  const [error, setError] = useState<string | null>(null);
+
   const containerVariants = { hidden: { opacity: 0 }, visible: { opacity: 1, transition: { staggerChildren: 0.1 } } };
   const itemVariants = { hidden: { y: 20, opacity: 0 }, visible: { y: 0, opacity: 1 } };
+
+  useEffect(() => {
+    loadAnalyticsData();
+  }, []);
+
+  const loadAnalyticsData = async () => {
+    try {
+      setIsLoading(true);
+      setError(null);
+      
+      // Fetch all analytics data in parallel
+      const [dashboard, providers, locations] = await Promise.all([
+        getDashboardAnalytics(),
+        getProviderStats(),
+        getProvidersByLocation()
+      ]);
+
+      setDashboardData(dashboard);
+      setProviderStats(providers);
+      // Convert location data to pie chart format
+      setLocationData(locations.map(loc => ({ name: loc.location, value: loc.providers })));
+    } catch (err: any) {
+      setError(err.userMessage || err.message || 'Failed to load analytics data');
+    } finally {
+      setIsLoading(false);
+    }
+  };
+
+  const kpiData = dashboardData && providerStats ? [
+    { 
+      title: "Total Bookings", 
+      value: dashboardData.kpis.totalBookings.toString(), 
+      icon: ShoppingCart, 
+      change: `${dashboardData.recentPerformance.recentBookingsCount} last 30 days`, 
+      changeType: "neutral" 
+    },
+    { 
+      title: "Total Tourists", 
+      value: dashboardData.kpis.totalUniqueTourists.toString(), 
+      icon: Users, 
+      change: `+${dashboardData.growthMetrics.touristGrowthRate.toFixed(1)}%`, 
+      changeType: dashboardData.growthMetrics.touristGrowthRate >= 0 ? "increase" : "decrease" 
+    },
+    { 
+      title: "Total Revenue", 
+      value: `$${dashboardData.kpis.totalRevenue.toLocaleString()}`, 
+      icon: DollarSign, 
+      change: `$${dashboardData.recentPerformance.recentRevenue.toLocaleString()} last 30 days`, 
+      changeType: "neutral" 
+    },
+    { 
+      title: "Avg Booking Value", 
+      value: `$${dashboardData.kpis.averageBookingValue.toLocaleString()}`, 
+      icon: Activity, 
+      change: `${providerStats.totalProviders} providers`, 
+      changeType: "neutral" 
+    },
+  ] : [];
+
+  if (isLoading) {
+    return (
+      <div className="flex flex-col items-center justify-center min-h-[60vh]">
+        <Loader2 className="h-12 w-12 animate-spin text-primary mb-4" />
+        <p className="text-gray-600">Loading analytics data...</p>
+      </div>
+    );
+  }
+
+  if (error) {
+    return (
+      <Alert className="border-red-200 bg-red-50">
+        <AlertCircle className="h-5 w-5 text-red-600" />
+        <AlertDescription className="text-red-800">
+          {error}
+        </AlertDescription>
+      </Alert>
+    );
+  }
+
+  const kpiColors = [
+    { gradient: 'from-primary-500 to-primary-600', icon: 'text-primary-100', bg: 'bg-primary-50/50' },
+    { gradient: 'from-accent-500 to-accent-600', icon: 'text-accent-100', bg: 'bg-accent-50/50' },
+    { gradient: 'from-info-500 to-info-600', icon: 'text-info-100', bg: 'bg-info-50/50' },
+    { gradient: 'from-secondary-500 to-secondary-600', icon: 'text-secondary-100', bg: 'bg-secondary-50/50' }
+  ];
 
   return (
     <motion.div className="grid gap-6" variants={containerVariants} initial="hidden" animate="visible">
       <div className="grid gap-6 md:grid-cols-2 lg:grid-cols-4">
         {kpiData.map((kpi, index) => (
           <motion.div key={index} variants={itemVariants}>
-            <Card className="hover:shadow-lg transition-shadow">
-              <CardHeader className="flex flex-row items-center justify-between space-y-0 pb-2">
-                <CardTitle className="text-sm font-medium">{kpi.title}</CardTitle>
-                <kpi.icon className="h-4 w-4 text-muted-foreground" />
+            <Card className={`hover:shadow-xl transition-all duration-300 border-0 shadow-lg overflow-hidden relative ${kpiColors[index].bg}`}>
+              <div className={`absolute top-0 right-0 w-32 h-32 bg-gradient-to-br ${kpiColors[index].gradient} opacity-10 rounded-full -mr-16 -mt-16`}></div>
+              <CardHeader className="flex flex-row items-center justify-between space-y-0 pb-2 relative z-10">
+                <CardTitle className="text-sm font-semibold text-gray-700">{kpi.title}</CardTitle>
+                <div className={`p-3 rounded-xl bg-gradient-to-br ${kpiColors[index].gradient} shadow-md`}>
+                  <kpi.icon className={`h-5 w-5 ${kpiColors[index].icon}`} />
+                </div>
               </CardHeader>
-              <CardContent>
-                <div className="text-2xl font-bold">{kpi.value}</div>
-                <p className={`text-xs ${kpi.changeType === 'increase' ? 'text-green-500' : 'text-red-500'}`}>{kpi.change} vs last month</p>
+              <CardContent className="relative z-10">
+                <div className="text-3xl font-bold bg-gradient-to-r from-gray-900 to-gray-700 bg-clip-text text-transparent">{kpi.value}</div>
+                <p className="text-xs text-gray-500 mt-1">{kpi.change} vs last month</p>
               </CardContent>
             </Card>
           </motion.div>
@@ -60,40 +127,61 @@ const Analytics = () => {
 
       <motion.div className="grid gap-6 lg:grid-cols-2" variants={containerVariants}>
         <motion.div variants={itemVariants}>
-          <Card className="hover:shadow-lg transition-shadow">
+          <Card className="hover:shadow-xl transition-all duration-300 border-0 shadow-lg bg-gradient-to-br from-white to-success-50/30">
             <CardHeader>
-              <CardTitle>Revenue Trend</CardTitle>
-              <CardDescription>Monthly revenue over the last 8 months.</CardDescription>
+              <CardTitle className="flex items-center gap-2 text-gray-800">
+                <div className="w-1 h-6 bg-gradient-success rounded-full"></div>
+                Revenue Trend
+              </CardTitle>
+              <CardDescription>Monthly revenue for {dashboardData?.currentYear || new Date().getFullYear()}.</CardDescription>
             </CardHeader>
             <CardContent className="h-80">
               <ResponsiveContainer width="100%" height="100%">
-                <LineChart data={revenueData} margin={{ top: 5, right: 20, left: -10, bottom: 5 }}>
-                  <CartesianGrid strokeDasharray="3 3" vertical={false} />
-                  <XAxis dataKey="month" fontSize={12} tickLine={false} axisLine={false} />
-                  <YAxis fontSize={12} tickLine={false} axisLine={false} tickFormatter={(value) => `$${value / 1000}k`} />
-                  <Tooltip cursor={{fill: 'rgba(100,100,100,0.1)'}} />
-                  <Legend />
-                  <Line type="monotone" dataKey="revenue" stroke="#16a34a" strokeWidth={2} dot={{ r: 4 }} activeDot={{ r: 6 }} />
-                </LineChart>
+                {!dashboardData || dashboardData.monthlyTrend.length === 0 ? (
+                  <div className="flex items-center justify-center h-full text-gray-500">
+                    <p>No monthly revenue data available.</p>
+                  </div>
+                ) : (
+                  <LineChart data={dashboardData.monthlyTrend.map(m => ({ 
+                    month: new Date(dashboardData.currentYear, m.month - 1).toLocaleString('default', { month: 'short' }), 
+                    revenue: m.revenue 
+                  }))} margin={{ top: 5, right: 20, left: -10, bottom: 5 }}>
+                    <CartesianGrid strokeDasharray="3 3" vertical={false} />
+                    <XAxis dataKey="month" fontSize={12} tickLine={false} axisLine={false} />
+                    <YAxis fontSize={12} tickLine={false} axisLine={false} tickFormatter={(value) => `$${(value / 1000).toFixed(0)}k`} />
+                    <Tooltip cursor={{fill: 'rgba(100,100,100,0.1)'}} />
+                    <Legend />
+                    <Line type="monotone" dataKey="revenue" stroke="#16a34a" strokeWidth={2} dot={{ r: 4 }} activeDot={{ r: 6 }} />
+                  </LineChart>
+                )}
               </ResponsiveContainer>
             </CardContent>
           </Card>
         </motion.div>
         <motion.div variants={itemVariants}>
-          <Card className="hover:shadow-lg transition-shadow">
+          <Card className="hover:shadow-xl transition-all duration-300 border-0 shadow-lg bg-gradient-to-br from-white to-info-50/30">
             <CardHeader>
-              <CardTitle>Bookings by Category</CardTitle>
-              <CardDescription>Distribution of bookings across service categories.</CardDescription>
+              <CardTitle className="flex items-center gap-2 text-gray-800">
+                <div className="w-1 h-6 bg-gradient-info rounded-full"></div>
+                Top Services by Bookings
+              </CardTitle>
+              <CardDescription>Most popular services based on booking count.</CardDescription>
             </CardHeader>
             <CardContent className="h-80">
               <ResponsiveContainer width="100%" height="100%">
-                <BarChart data={bookingsByCategoryData} layout="vertical" margin={{ top: 5, right: 20, left: 10, bottom: 5 }}>
-                  <CartesianGrid strokeDasharray="3 3" horizontal={false} />
-                  <XAxis type="number" fontSize={12} tickLine={false} axisLine={false} />
-                  <YAxis type="category" dataKey="category" fontSize={12} tickLine={false} axisLine={false} width={100} />
-                  <Tooltip cursor={{fill: 'rgba(100,100,100,0.1)'}} />
-                  <Bar dataKey="bookings" fill="#0088FE" radius={[0, 4, 4, 0]} />
-                </BarChart>
+                {!dashboardData || dashboardData.topServices.length === 0 ? (
+                  <div className="flex items-center justify-center h-full text-gray-500">
+                    <p>No service data available.</p>
+                  </div>
+                ) : (
+                  <BarChart data={dashboardData.topServices} layout="vertical" margin={{ top: 5, right: 20, left: 10, bottom: 5 }}>
+                    <CartesianGrid strokeDasharray="3 3" horizontal={false} />
+                    <XAxis type="number" fontSize={12} tickLine={false} axisLine={false} />
+                    <YAxis type="category" dataKey="serviceName" fontSize={12} tickLine={false} axisLine={false} width={120} />
+                    <Tooltip cursor={{fill: 'rgba(100,100,100,0.1)'}} />
+                    <Bar dataKey="bookingCount" fill="#0088FE" radius={[0, 4, 4, 0]} />
+                  </BarChart>
+                )}
               </ResponsiveContainer>
             </CardContent>
           </Card>
@@ -101,20 +189,29 @@ const Analytics = () => {
       </motion.div>
 
       <motion.div variants={itemVariants}>
-        <Card className="hover:shadow-lg transition-shadow">
+        <Card className="hover:shadow-xl transition-all duration-300 border-0 shadow-lg bg-gradient-to-br from-white to-secondary-50/30">
           <CardHeader>
-            <CardTitle>Provider Geographic Distribution</CardTitle>
-            <CardDescription>Provider concentration by province.</CardDescription>
+            <CardTitle className="flex items-center gap-2 text-gray-800">
+              <div className="w-1 h-6 bg-gradient-purple rounded-full"></div>
+              Provider Geographic Distribution
+            </CardTitle>
+            <CardDescription>Provider concentration by city.</CardDescription>
           </CardHeader>
           <CardContent className="h-80 flex items-center justify-center">
             <ResponsiveContainer width="100%" height="100%">
-              <PieChart>
-                <Pie data={providerLocationData} dataKey="value" nameKey="name" cx="50%" cy="50%" outerRadius={100} labelLine={false} label={({ name, percent }) => `${name} ${(percent * 100).toFixed(0)}%`}>
-                  {providerLocationData.map((entry, index) => <Cell key={`cell-${index}`} fill={COLORS[index % COLORS.length]} />)}
-                </Pie>
-                <Tooltip />
-                <Legend />
-              </PieChart>
+              {locationData.length === 0 ? (
+                <div className="flex items-center justify-center h-full text-gray-500">
+                  <p>No location data available.</p>
+                </div>
+              ) : (
+                <PieChart>
+                  <Pie data={locationData} dataKey="value" nameKey="name" cx="50%" cy="50%" outerRadius={100} labelLine={false} label={({ name, percent }) => `${name} ${(percent * 100).toFixed(0)}%`}>
+                    {locationData.map((entry, index) => <Cell key={`cell-${index}`} fill={COLORS[index % COLORS.length]} />)}
+                  </Pie>
+                  <Tooltip />
+                  <Legend />
+                </PieChart>
+              )}
             </ResponsiveContainer>
           </CardContent>
         </Card>
