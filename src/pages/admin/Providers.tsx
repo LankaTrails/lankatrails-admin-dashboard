@@ -14,7 +14,7 @@ import { getAllProviders, ProviderBasicInfo } from '@/services/providerService';
 
 const Providers = () => {
     const [searchTerm, setSearchTerm] = useState('');
-    const [statusFilters, setStatusFilters] = useState({ ACTIVE: true, PENDING: true, REJECTED: true });
+    const [statusFilters, setStatusFilters] = useState({ ACTIVE: true, PENDING: true, DISABLED: true });
     const [allProviders, setAllProviders] = useState<ProviderBasicInfo[]>([]);
     const [isLoading, setIsLoading] = useState(true);
     const [error, setError] = useState<string | null>(null);
@@ -85,7 +85,7 @@ const Providers = () => {
                                 <DropdownMenuSeparator />
                                 <DropdownMenuCheckboxItem checked={statusFilters.ACTIVE} onCheckedChange={() => handleStatusChange('ACTIVE')}>Active</DropdownMenuCheckboxItem>
                                 <DropdownMenuCheckboxItem checked={statusFilters.PENDING} onCheckedChange={() => handleStatusChange('PENDING')}>Pending</DropdownMenuCheckboxItem>
-                                <DropdownMenuCheckboxItem checked={statusFilters.REJECTED} onCheckedChange={() => handleStatusChange('REJECTED')}>Rejected</DropdownMenuCheckboxItem>
+                                <DropdownMenuCheckboxItem checked={statusFilters.DISABLED} onCheckedChange={() => handleStatusChange('DISABLED')}>Disabled</DropdownMenuCheckboxItem>
                             </DropdownMenuContent>
                         </DropdownMenu>
                     </div>
@@ -105,10 +105,10 @@ const Providers = () => {
                             <TableHeader>
                                 <TableRow>
                                     <TableHead>Provider</TableHead>
-                                    <TableHead className="hidden md:table-cell">Service Type</TableHead>
+                                    <TableHead className="hidden md:table-cell">Business Type</TableHead>
                                     <TableHead>Status</TableHead>
                                     <TableHead className="hidden lg:table-cell">Location</TableHead>
-                                    <TableHead className="hidden lg:table-cell">Registered On</TableHead>
+                                    <TableHead className="hidden lg:table-cell">Registration No.</TableHead>
                                     <TableHead className="text-center">Payment</TableHead>
                                     <TableHead className="text-right">Actions</TableHead>
                                 </TableRow>
@@ -129,7 +129,12 @@ const Providers = () => {
                                         </TableCell>
                                         <TableCell className="hidden md:table-cell">{provider.businessType}</TableCell>
                                         <TableCell>
-                                            <Badge variant={provider.status === 'ACTIVE' ? 'default' : provider.status === 'PENDING' ? 'secondary' : 'destructive'} className={`capitalize lowercase ${provider.status === 'ACTIVE' ? 'bg-success-500 hover:bg-success-600 border-0' : provider.status === 'PENDING' ? 'bg-warning-500 text-white hover:bg-warning-600 border-0' : 'bg-destructive-500 hover:bg-destructive-600 border-0'}`}>{provider.status.toLowerCase()}</Badge>
+                                            <Badge 
+                                                variant={provider.status === 'ACTIVE' ? 'default' : provider.status === 'PENDING' ? 'secondary' : 'destructive'} 
+                                                className={`capitalize ${provider.status === 'ACTIVE' ? 'bg-success-500 hover:bg-success-600 border-0 text-white' : provider.status === 'PENDING' ? 'bg-warning-500 text-white hover:bg-warning-600 border-0' : 'bg-destructive-500 hover:bg-destructive-600 border-0'}`}
+                                            >
+                                                {provider.status === 'ACTIVE' ? 'active' : provider.status === 'PENDING' ? 'pending' : 'disabled'}
+                                            </Badge>
                                         </TableCell>
                                         <TableCell className="hidden lg:table-cell">{provider.city || 'N/A'}</TableCell>
                                         <TableCell className="hidden lg:table-cell">{provider.businessRegistrationNumber}</TableCell>
