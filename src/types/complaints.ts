@@ -1,28 +1,26 @@
-export type BusinessType = 'INDIVIDUAL'| 'COMPANY' | 'ORGANIZATION';
+export type BusinessType = "INDIVIDUAL" | "COMPANY" | "ORGANIZATION";
+export type UserStatus = "ACTIVE" | "PENDING" | "DISABLED";
+export type ComplaintStatus = "RESOLVED" | "PENDING" | "IN_PROGRESS";
+export type ComplaintResult = "REFUND_FROM_PROVIDER" | "REFUND_FROM_COMPANY" | "REJECT";
+export type RefundStatus = "REFUNDED";
 
-export type UserStatus = 'ACTIVE' | 'PENDING' | 'DISABLED';
-
-export type ComplaintStatus = 'RESOLVED' | 'PENDING' | 'IN_PROGRESS';
-
-export type FaultType = 'APP_FAULT' | 'PROVIDER_FAULT' | 'REJECT';
-
+/** Mirrors the backend ComplaintViewDTO (fields the admin app reads). */
 export interface Complaint {
-    serviceName : string;
-    businessType : BusinessType;
-    touristEmail : string;
-    userStatus : UserStatus;
-    complaintStatus : ComplaintStatus;
-    complaintResult:string;
-    complaintId : string;
-    complaintDateTime : string;
-    description: string;
-    bookingId : string;
-    investigationStartedDate : string;
-    faultType: String;
-    paidAmount : String;
-    refundReason:String;
-    refundStatus:String;
-    complaintImgs: string[];
-    adminToCustomer:String;
-    adminToTourist:String;
+  complaintId: number;
+  serviceName: string | null;
+  businessType: BusinessType | null;
+  touristEmail: string | null;
+  userStatus: UserStatus | null;
+  complaintStatus: ComplaintStatus;
+  complaintResult: ComplaintResult | null;
+  complaintDateTime: string | null;
+  description: string | null;
+  bookingId: number | null;
+  investigationStartedDate: string | null;
+  paidAmount: string | number | null;
+  refundReason: string | null;
+  refundStatus: RefundStatus | null;
+  complaintImgs: string[] | null;
+  adminToTourist: string | null;
+  adminToProvider: string | null;
 }

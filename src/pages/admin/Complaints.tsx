@@ -1,5 +1,5 @@
 import { useEffect, useState } from 'react';
-import { Badge } from "@/components/ui/badge";
+import { Badge, type BadgeProps } from "@/components/ui/badge";
 import { Button } from "@/components/ui/button";
 import { Card, CardContent, CardDescription, CardHeader, CardTitle } from "@/components/ui/card";
 import { DropdownMenu, DropdownMenuContent, DropdownMenuCheckboxItem, DropdownMenuLabel, DropdownMenuSeparator, DropdownMenuTrigger } from "@/components/ui/dropdown-menu";
@@ -8,6 +8,7 @@ import { Table, TableBody, TableCell, TableHead, TableHeader, TableRow } from "@
 import { Eye, ListFilter, Search, CheckCircle, XCircle, Clock } from 'lucide-react';
 import { motion } from 'framer-motion';
 import { useNavigate } from "react-router-dom";
+import { errorMessage } from '@/lib/apiError';
 import { findAllComplaints } from '@/services/complaintSection';
 import { Complaint } from '@/types/complaints';
 
@@ -29,23 +30,25 @@ const Complaints = () => {
     });
     const [complaints, setComplaints] = useState<Complaint[]>([]);
     const [isLoading, setIsLoading] = useState(true);
+    const [error, setError] = useState<string | null>(null);
     const navigate = useNavigate();
 
-    const handleStatusChange = (status: string) => {
+    const handleStatusChange = (status: keyof typeof statusFilters) => {
         setStatusFilters(prev => ({ ...prev, [status]: !prev[status] }));
     };
 
     // Filter to show only PENDING and IN_PROGRESS complaints
-    const filteredComplaints = Array.isArray(complaints) ? complaints
-        .filter(c => c.complaintStatus === 'PENDING' || c.complaintStatus === 'IN_PROGRESS'||c.complaintStatus === 'RESOLVED')
-        .filter(c => statusFilters[c.complaintStatus as keyof typeof statusFilters])
+    const query = searchTerm.trim().toLowerCase();
+    const filteredComplaints = complaints
+        .filter(c => statusFilters[c.complaintStatus] ?? true)
         .filter(c =>
-            c.complaintId?.toString().toLowerCase().includes(searchTerm.toLowerCase()) ||
-            c.touristEmail?.toLowerCase().includes(searchTerm.toLowerCase()) ||
-            c.serviceName?.toLowerCase().includes(searchTerm.toLowerCase()) ||
-            c.complaintStatus?.toLowerCase().includes(searchTerm.toLowerCase()) ||
-            c.businessType?.toLowerCase().includes(searchTerm.toLowerCase())
-        ) : [];
+            !query ||
+            String(c.complaintId).includes(query) ||
+            (c.touristEmail ?? '').toLowerCase().includes(query) ||
+            (c.serviceName ?? '').toLowerCase().includes(query) ||
+            c.complaintStatus.toLowerCase().includes(query) ||
+            (c.businessType ?? '').toLowerCase().includes(query)
+        );
 
     const itemVariants = { hidden: { y: 20, opacity: 0 }, visible: { y: 0, opacity: 1, transition: { duration: 0.5 } } };
     
@@ -53,11 +56,10 @@ const Complaints = () => {
         const fetchAllComplaints = async () => {
             try {
                 setIsLoading(true);
-                const response = await findAllComplaints();
-                console.log("Complaints response: ", response);
-                setComplaints(response);
-            } catch (error) {
-                console.error('Error fetching complaints:', error);
+                setError(null);
+                setComplaints(await findAllComplaints());
+            } catch (loadError) {
+                setError(errorMessage(loadError, 'Failed to load complaints'));
                 setComplaints([]);
             } finally {
                 setIsLoading(false);
@@ -116,7 +118,7 @@ const Complaints = () => {
                     <motion.div initial="hidden" animate="visible" variants={{ visible: { transition: { staggerChildren: 0.05 } } }}>
                         {filteredComplaints.length === 0 ? (
                             <div className="text-center py-12">
-                                <p className="text-muted-foreground text-lg">No pending or in-progress complaints</p>
+                                <p className="text-muted-foreground text-lg">{error ?? (complaints.length === 0 ? 'No complaints have been submitted yet.' : 'No complaints match your search or filters.')}</p>
                             </div>
                         ) : (
                             <Table>
@@ -140,7 +142,7 @@ const Complaints = () => {
                                                 <TableCell>{complaint.serviceName}</TableCell>
                                                 <TableCell className="hidden lg:table-cell">{complaint.businessType}</TableCell>
                                                 <TableCell>
-                                                    <Badge variant={statusInfo.variant as any} className={`capitalize ${statusInfo.color}`}>
+                                                    <Badge variant={statusInfo.variant as BadgeProps['variant']} className={`capitalize ${statusInfo.color}`}>
                                                         <statusInfo.icon className="mr-1 h-3 w-3" />
                                                         {complaint.complaintStatus === 'IN_PROGRESS' ? 'In Progress' : complaint.complaintStatus}
                                                     </Badge>

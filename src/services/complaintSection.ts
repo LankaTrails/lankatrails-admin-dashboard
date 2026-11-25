@@ -1,211 +1,73 @@
 import api from "@/api/axiosInstance";
-import { Complaint } from "@/types/complaints";
+import { toApiError } from "@/lib/apiError";
+import type { Complaint, ComplaintResult } from "@/types/complaints";
 
-//load all the complaints (basic details)
+/** All complaints (summary rows). The API returns null instead of [] when there are none. */
 export async function findAllComplaints(): Promise<Complaint[]> {
-    try {
-        const response = await api.get(`/admin/complaints`);
-        console.log('Response from getAllComplaints:', response.data.data);
-        return response.data.data.content;
-    } catch (error : any) {
-        if (error.response && error.response.data) {
-            const { code, message, details, userMessage } = error.response.data;
-            throw {
-                code,
-                message,
-                details,
-                userMessage,
-            };
-        
-        }
-        throw {
-            message: 'Failed to load complaints',
-            code: 'UNKNOWN_ERROR',
-        };
-    }
-    
+  try {
+    const response = await api.get("/admin/complaints");
+    return response.data.data?.content ?? [];
+  } catch (error) {
+    throw toApiError(error, "Failed to load complaints");
+  }
 }
 
-//load a specific complaint by its id
-export async function findComplaintById(id:any): Promise<Complaint> {
-    try {
-        const response = await api.get(`/admin/complaints/${id}`);
-        console.log('Response from find a Complaint By ID:', response.data);
-        return response.data.data;
-    } catch (error : any) {
-        if (error.response && error.response.data) {
-            const { code, message, details, userMessage } = error.response.data;
-            throw {
-                code,
-                message,
-                details,
-                userMessage,
-            };
-        
-        }
-        throw {
-            message: 'Failed to load complaints',
-            code: 'UNKNOWN_ERROR',
-        };
-    }
-    
+export async function findComplaintById(id: number | string): Promise<Complaint> {
+  try {
+    const response = await api.get(`/admin/complaints/${id}`);
+    return response.data.data;
+  } catch (error) {
+    throw toApiError(error, "Failed to load the complaint");
+  }
 }
 
-//update complaint status to IN_PROGRESS
-export async function updateComplaintStatus(id: string, investigationStartedDate: string): Promise<Complaint> {
-    try {
-        console.log('Updating complaint status with investigationStartedDate:', investigationStartedDate);
-        const response = await api.put(`/admin/complaints/${id}`, { investigationStartedDate });
-        console.log('Response from updating complaint status:', response.data);
-        return response.data.data;
-    } catch (error: any) {
-        if (error.response && error.response.data) {
-            const { code, message, details, userMessage } = error.response.data;
-            throw {
-                code,
-                message,
-                details,
-                userMessage,
-            };
-        }
-        throw {
-            message: 'Failed to update complaint status',
-            code: 'UNKNOWN_ERROR',
-        };
-    }
+/** Marks the complaint IN_PROGRESS (PUT /admin/complaints/{id}, ComplaintViewDTO). */
+export async function updateComplaintStatus(id: number | string, investigationStartedDate: string): Promise<void> {
+  try {
+    await api.put(`/admin/complaints/${id}`, { investigationStartedDate });
+  } catch (error) {
+    throw toApiError(error, "Failed to update the complaint status");
+  }
 }
 
-// update complaint result (REFUND_FROM_PROVIDER, REFUND_FROM_COMPANY, or REJECT)
-export async function updateComplaintResult(id: string, complaintResult: string): Promise<Complaint> {
-    try {
-        console.log('Updating complaint result with:', complaintResult);
-        const response = await api.put(`/admin/complaint-result/${id}`, { complaintResult });
-        console.log('Response from updating complaint result:', response.data);
-        return response.data.data;
-    } catch (error: any) {
-        if (error.response && error.response.data) {
-            const { code, message, details, userMessage } = error.response.data;
-            throw {
-                code,
-                message,
-                details,
-                userMessage,
-            };
-        }
-        throw {
-            message: 'Failed to update complaint result',
-            code: 'UNKNOWN_ERROR',
-        };
-    }
+/** Records who is at fault (PUT /admin/complaint-result/{id}, ComplaintViewDTO.complaintResult). */
+export async function updateComplaintResult(id: number | string, complaintResult: ComplaintResult): Promise<void> {
+  try {
+    await api.put(`/admin/complaint-result/${id}`, { complaintResult });
+  } catch (error) {
+    throw toApiError(error, "Failed to save the fault classification");
+  }
 }
 
-//update refund status
-export async function updateRefundStatus(id: string, updateData: any): Promise<void> {
-    try {
-        console.log('Updating complaint refund status with data:', updateData);
-
-        // This is the key change: wrap the string in an object
-        const complaintData = {
-            refundStatus :updateData.refundStatus,
-            refundReason: updateData.refundReason,
-            complaintResult: updateData.complaintResult
-        };
-
-        const response = await api.put(
-            `/admin/complaint-refund/${id}`,
-            complaintData, // Send the new object
-            {
-                headers: {
-                    'Content-Type': 'application/json',
-                },
-            }
-        );
-
-        console.log('Response from updating complaint refund status:', response.data);
-    } catch (error: any) {
-        if (error.response && error.response.data) {
-            const { code, message, details, userMessage } = error.response.data;
-            throw {
-                code,
-                message,
-                details,
-                userMessage,
-            };
-        }
-        throw {
-            message: 'Failed to update complaint status',
-            code: 'UNKNOWN_ERROR',
-        };
-    }
-
+/**
+ * Issues the refund. The backend refunds the booking's Stripe payment: a provider-fault refund
+ * reverses the provider's payout, a company refund is paid by the platform.
+ */
+export async function processRefund(
+  id: number | string,
+  refund: { complaintResult: ComplaintResult; refundReason: string },
+): Promise<void> {
+  try {
+    await api.put(`/admin/complaint-refund/${id}`, { ...refund, refundStatus: "REFUNDED" });
+  } catch (error) {
+    throw toApiError(error, "Failed to process the refund");
+  }
 }
 
-//send feedback to provider
-export async function sendFeedbackToProvider(id: string, updateData: any): Promise<void> {
-    try {
-        console.log('Sending feedback to provider:', { id, updateData });
-        const complaintData={
-            adminToProvider: updateData.updateData.adminToProvider
-        }
-        const response = await api.put(
-            `/admin/complaint-provider-feedback/${id}`,
-            complaintData, // Send the feedback data in the request body
-            {
-                headers: {
-                    'Content-Type': 'application/json',
-                },
-            }
-        );
-        
-        console.log('Response from sending feedback to provider:', response.data);
-    } catch (error: any) {
-        if (error.response && error.response.data) {
-            const { code, message, details, userMessage } = error.response.data;
-            throw {
-                code,
-                message,
-                details,
-                userMessage,
-            };
-        }
-        throw {
-            message: 'Failed to send feedback to provider',
-            code: 'UNKNOWN_ERROR',
-        };
-    }
+/** Emails feedback to the provider and stores it on the complaint (adminToProvider). */
+export async function sendFeedbackToProvider(id: number | string, message: string): Promise<void> {
+  try {
+    await api.put(`/admin/complaint-provider-feedback/${id}`, { adminToProvider: message });
+  } catch (error) {
+    throw toApiError(error, "Failed to send feedback to the provider");
+  }
 }
 
-//send feedback to tourist
-export async function sendFeedbackToTourist(id: string, updateData: any): Promise<void> {
-    try {
-        console.log('Sending feedback to tourist:', { id, updateData });
-        const complaintData={
-            adminToTourist: updateData.updateData.adminToTourist
-        }
-        const response = await api.put(
-            `/admin/complaint-tourist-feedback/${id}`,
-            complaintData, // Send the feedback data in the request body
-            {
-                headers: {
-                    'Content-Type': 'application/json',
-                },
-            }
-        );
-        
-        console.log('Response from sending feedback to tourist:', response.data);
-    } catch (error: any) {
-        if (error.response && error.response.data) {
-            const { code, message, details, userMessage } = error.response.data;
-            throw {
-                code,
-                message,
-                details,
-                userMessage,
-            };
-        }
-        throw {
-            message: 'Failed to send feedback to tourist',
-            code: 'UNKNOWN_ERROR',
-        };
-    }
+/** Emails feedback to the tourist and stores it on the complaint (adminToTourist). */
+export async function sendFeedbackToTourist(id: number | string, message: string): Promise<void> {
+  try {
+    await api.put(`/admin/complaint-tourist-feedback/${id}`, { adminToTourist: message });
+  } catch (error) {
+    throw toApiError(error, "Failed to send feedback to the tourist");
+  }
 }
