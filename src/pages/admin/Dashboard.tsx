@@ -14,29 +14,23 @@ import { Button } from "@/components/ui/button"
 import { Alert, AlertDescription, AlertTitle } from "@/components/ui/alert"
 import { motion } from 'framer-motion';
 import { BarChart, Bar, PieChart, Pie, Cell, XAxis, YAxis, CartesianGrid, Tooltip, Legend, ResponsiveContainer } from 'recharts';
-import { BadgeCheck, BadgeX, Eye } from "lucide-react";
+import { Eye } from "lucide-react";
+import { useNavigate } from "react-router-dom";
 import { getDashboardAnalytics, DashboardAnalytics } from '@/services/analyticsService';
 import { getAllProviders, ProviderBasicInfo } from '@/services/providerService';
+import { errorMessage } from '@/lib/apiError';
+import { formatCurrency, formatNumber } from '@/lib/format';
 
 const COLORS = ['#10B981', '#F59E0B', '#EF4444', '#3B82F6', '#8B5CF6'];
 
 const MONTH_NAMES = ['Jan', 'Feb', 'Mar', 'Apr', 'May', 'Jun', 'Jul', 'Aug', 'Sep', 'Oct', 'Nov', 'Dec'];
-
-// Format currency
-const formatCurrency = (amount: number) => {
-  return new Intl.NumberFormat('en-US', { style: 'currency', currency: 'USD', minimumFractionDigits: 0, maximumFractionDigits: 0 }).format(amount);
-};
-
-// Format number with commas
-const formatNumber = (num: number) => {
-  return new Intl.NumberFormat('en-US').format(num);
-};
 
 const Dashboard = () => {
   const [dashboardData, setDashboardData] = useState<DashboardAnalytics | null>(null);
   const [providers, setProviders] = useState<ProviderBasicInfo[]>([]);
   const [loading, setLoading] = useState(true);
   const [error, setError] = useState<string | null>(null);
+  const navigate = useNavigate();
 
   const containerVariants = { hidden: { opacity: 0 }, visible: { opacity: 1, transition: { staggerChildren: 0.1 } } };
   const itemVariants = { hidden: { y: 20, opacity: 0 }, visible: { y: 0, opacity: 1 } };
@@ -46,29 +40,16 @@ const Dashboard = () => {
       setLoading(true);
       setError(null);
       
-      try {
-        // Fetch providers (always try to show this)
-        const providersData = await getAllProviders();
-        setProviders(providersData.slice(0, 5));
-        console.log('✅ Providers loaded successfully');
-      } catch (err: any) {
-        console.error('❌ Failed to fetch providers:', err);
-        // Continue even if providers fail
+      // The two requests are independent: show whatever loads.
+      const [providersResult, analyticsResult] = await Promise.allSettled([getAllProviders(), getDashboardAnalytics()]);
+      if (providersResult.status === 'fulfilled') {
+        setProviders(providersResult.value.slice(0, 5));
       }
-      
-      try {
-        // Fetch analytics (can fail gracefully)
-        const analyticsData = await getDashboardAnalytics();
-        setDashboardData(analyticsData);
-        console.log('✅ Analytics loaded successfully');
-      } catch (err: any) {
-        console.error('❌ Failed to fetch analytics:', err);
-        setError(
-          'Analytics data temporarily unavailable. The analytics endpoint is experiencing issues. ' +
-          'Provider data is still displayed below.'
-        );
+      if (analyticsResult.status === 'fulfilled') {
+        setDashboardData(analyticsResult.value);
+      } else {
+        setError(errorMessage(analyticsResult.reason, 'Analytics are unavailable right now.'));
       }
-      
       setLoading(false);
     };
 
@@ -86,7 +67,7 @@ const Dashboard = () => {
   const bookingStatusData = dashboardData ? Object.entries(dashboardData.bookingStatusDistribution).map(([name, value]) => ({
     name,
     value
-  })) : [];
+  })).filter(entry => entry.value > 0) : [];
 
   if (loading) {
     return (
@@ -187,6 +168,9 @@ const Dashboard = () => {
               <CardDescription>Booking volume and revenue by month</CardDescription>
             </CardHeader>
             <CardContent className="h-[300px]">
+              {monthlyChartData.length === 0 ? (
+                <EmptyChart message="No bookings this year yet." />
+              ) : (
               <ResponsiveContainer width="100%" height="100%">
                 <BarChart data={monthlyChartData} margin={{ top: 10, right: 10, left: -20, bottom: 0 }}>
                   <CartesianGrid strokeDasharray="3 3" vertical={false} stroke="#E5E7EB" />
@@ -197,6 +181,7 @@ const Dashboard = () => {
                   <Bar dataKey="bookings" fill="#8B5CF6" radius={[8, 8, 0, 0]} name="Bookings" />
                 </BarChart>
               </ResponsiveContainer>
+              )}
             </CardContent>
           </Card>
         </motion.div>
@@ -212,15 +197,19 @@ const Dashboard = () => {
               <CardDescription>Overview of all booking statuses</CardDescription>
             </CardHeader>
             <CardContent className="h-[300px]">
+              {bookingStatusData.length === 0 ? (
+                <EmptyChart message="No bookings to break down yet." />
+              ) : (
               <ResponsiveContainer width="100%" height="100%">
                 <PieChart>
                   <Pie data={bookingStatusData} dataKey="value" nameKey="name" cx="50%" cy="50%" outerRadius={80} label>
-                    {bookingStatusData.map((entry, index) => <Cell key={`cell-${index}`} fill={COLORS[index % COLORS.length]} />)}
+                    {bookingStatusData.map((_entry, index) => <Cell key={`cell-${index}`} fill={COLORS[index % COLORS.length]} />)}
                   </Pie>
                   <Tooltip />
                   <Legend />
                 </PieChart>
               </ResponsiveContainer>
+              )}
             </CardContent>
           </Card>
         </motion.div>
@@ -249,25 +238,24 @@ const Dashboard = () => {
               </TableHeader>
               <TableBody>
                 {providers.map((provider) => (
-                  <motion.tr key={provider.email} variants={itemVariants} className="hover:bg-muted/50 transition-colors">
+                  <motion.tr key={provider.providerId} variants={itemVariants} className="hover:bg-muted/50 transition-colors">
                     <TableCell>
                       <div className="font-medium">{provider.businessName}</div>
                       <div className="text-sm text-muted-foreground hidden md:inline">{provider.email}</div>
                     </TableCell>
                     <TableCell className="hidden md:table-cell">{provider.businessType}</TableCell>
                     <TableCell>
-                      <Badge variant={provider.status === 'APPROVED' ? 'default' : provider.status === 'PENDING' ? 'secondary' : 'destructive'} className={`capitalize ${provider.status === 'APPROVED' ? 'bg-success-500 hover:bg-success-600 border-0' : provider.status === 'PENDING' ? 'bg-warning-500 text-white hover:bg-warning-600 border-0' : 'bg-destructive-500 hover:bg-destructive-600 border-0'}`}>{provider.status}</Badge>
+                      <Badge variant={provider.status === 'ACTIVE' ? 'default' : provider.status === 'PENDING' ? 'secondary' : 'destructive'} className={`capitalize ${provider.status === 'ACTIVE' ? 'bg-success-500 hover:bg-success-600 border-0' : provider.status === 'PENDING' ? 'bg-warning-500 text-white hover:bg-warning-600 border-0' : 'bg-destructive-500 hover:bg-destructive-600 border-0'}`}>{provider.status}</Badge>
                     </TableCell>
                     <TableCell className="text-right">
-                      <div className="flex items-center justify-end gap-2">
-                        <Button variant="outline" size="icon" className="h-8 w-8 hover:bg-info-100 hover:text-info-600 border-info-200"><Eye className="h-4 w-4" /></Button>
-                        {provider.status === 'PENDING' && (
-                          <>
-                            <Button variant="outline" size="icon" className="h-8 w-8 text-success-600 hover:bg-success-100 border-success-200"><BadgeCheck className="h-4 w-4" /></Button>
-                            <Button variant="outline" size="icon" className="h-8 w-8 text-destructive-600 hover:bg-destructive-100 border-destructive-200"><BadgeX className="h-4 w-4" /></Button>
-                          </>
-                        )}
-                      </div>
+                      <Button
+                        variant="outline"
+                        size="sm"
+                        className="h-8 gap-1 border-info-200 hover:bg-info-100 hover:text-info-600"
+                        onClick={() => navigate(`/admin/providers/${provider.providerId}`)}
+                      >
+                        <Eye className="h-4 w-4" /> Review
+                      </Button>
                     </TableCell>
                   </motion.tr>
                 ))}
@@ -281,3 +269,9 @@ const Dashboard = () => {
 }
 
 export default Dashboard;
+
+const EmptyChart = ({ message }: { message: string }) => (
+  <div className="flex h-full items-center justify-center rounded-lg border border-dashed border-gray-200 text-sm text-muted-foreground">
+    {message}
+  </div>
+);
