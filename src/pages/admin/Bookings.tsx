@@ -5,29 +5,20 @@ import { Card, CardContent, CardDescription, CardHeader, CardTitle } from "@/com
 import { DropdownMenu, DropdownMenuContent, DropdownMenuCheckboxItem, DropdownMenuLabel, DropdownMenuSeparator, DropdownMenuTrigger } from "@/components/ui/dropdown-menu";
 import { Input } from "@/components/ui/input";
 import { Table, TableBody, TableCell, TableHead, TableHeader, TableRow } from "@/components/ui/table";
-import { Eye, ListFilter, Search, CheckCircle, XCircle, Clock, AlertCircle, Loader2 } from 'lucide-react';
+import { ListFilter, Search, CheckCircle, XCircle, Clock, AlertCircle, Loader2, type LucideIcon } from 'lucide-react';
 import { motion } from 'framer-motion';
+import { formatCurrency, formatDate } from '@/lib/format';
+import { errorMessage } from '@/lib/apiError';
 import { getAllBookings, BookingItemDto, BookingStatus as BookingStatusType } from '@/services/bookingService';
 import { Alert, AlertDescription, AlertTitle } from '@/components/ui/alert';
 
 // Status badge configuration
-const statusConfig: Record<BookingStatusType, { variant: string; icon: any; color: string; label: string }> = {
+const statusConfig: Record<BookingStatusType, { variant: string; icon: LucideIcon; color: string; label: string }> = {
   CONFIRMED: { variant: 'default', icon: CheckCircle, color: 'bg-success-500 hover:bg-success-600 border-0 text-white', label: 'Confirmed' },
   PENDING: { variant: 'secondary', icon: Clock, color: 'bg-warning-500 text-white hover:bg-warning-600 border-0', label: 'Pending' },
   CANCELLED: { variant: 'destructive', icon: XCircle, color: 'bg-destructive-500 hover:bg-destructive-600 border-0', label: 'Cancelled' },
   PAYMENT_FAILED: { variant: 'destructive', icon: AlertCircle, color: 'bg-red-500 hover:bg-red-600 border-0 text-white', label: 'Payment Failed' },
   NOT_AVAILABLE: { variant: 'secondary', icon: XCircle, color: 'bg-gray-500 hover:bg-gray-600 border-0 text-white', label: 'Not Available' },
-};
-
-// Format date to readable string
-const formatDate = (dateString: string) => {
-  const date = new Date(dateString);
-  return date.toLocaleDateString('en-US', { year: 'numeric', month: 'short', day: 'numeric' });
-};
-
-// Format currency
-const formatCurrency = (amount: number) => {
-  return new Intl.NumberFormat('en-US', { style: 'currency', currency: 'USD' }).format(amount);
 };
 
 const Bookings = () => {
@@ -51,9 +42,8 @@ const Bookings = () => {
                 setError(null);
                 const data = await getAllBookings();
                 setBookings(data);
-            } catch (err: any) {
-                console.error('Failed to fetch bookings:', err);
-                setError(err.userMessage || err.message || 'Failed to load bookings');
+            } catch (loadError) {
+                setError(errorMessage(loadError, 'Failed to load bookings'));
             } finally {
                 setLoading(false);
             }
@@ -66,12 +56,14 @@ const Bookings = () => {
         setStatusFilters(prev => ({ ...prev, [status]: !prev[status] }));
     };
 
+    const query = searchTerm.trim().toLowerCase();
     const filteredBookings = bookings
-        .filter(b => statusFilters[b.status])
+        .filter(b => statusFilters[b.status] ?? true)
         .filter(b =>
-            b.tripItemId.toString().includes(searchTerm.toLowerCase()) ||
-            b.service.serviceName.toLowerCase().includes(searchTerm.toLowerCase()) ||
-            b.service.provider.businessName.toLowerCase().includes(searchTerm.toLowerCase())
+            !query ||
+            String(b.tripItemId).includes(query) ||
+            (b.service?.serviceName ?? '').toLowerCase().includes(query) ||
+            (b.service?.provider?.businessName ?? '').toLowerCase().includes(query)
         );
 
     const itemVariants = { hidden: { y: 20, opacity: 0 }, visible: { y: 0, opacity: 1, transition: { duration: 0.5 } } };
@@ -112,6 +104,7 @@ const Bookings = () => {
                                 <DropdownMenuCheckboxItem checked={statusFilters.PENDING} onCheckedChange={() => handleStatusChange('PENDING')}>Pending</DropdownMenuCheckboxItem>
                                 <DropdownMenuCheckboxItem checked={statusFilters.CANCELLED} onCheckedChange={() => handleStatusChange('CANCELLED')}>Cancelled</DropdownMenuCheckboxItem>
                                 <DropdownMenuCheckboxItem checked={statusFilters.PAYMENT_FAILED} onCheckedChange={() => handleStatusChange('PAYMENT_FAILED')}>Payment Failed</DropdownMenuCheckboxItem>
+                                <DropdownMenuCheckboxItem checked={statusFilters.NOT_AVAILABLE} onCheckedChange={() => handleStatusChange('NOT_AVAILABLE')}>Not Available</DropdownMenuCheckboxItem>
                             </DropdownMenuContent>
                         </DropdownMenu>
                     </div>
@@ -129,7 +122,7 @@ const Bookings = () => {
                     ) : filteredBookings.length === 0 ? (
                         <div className="text-center py-12">
                             <AlertCircle className="h-12 w-12 text-gray-400 mx-auto mb-4" />
-                            <p className="text-gray-600">No bookings found matching your criteria.</p>
+                            <p className="text-gray-600">{bookings.length === 0 ? 'No bookings have been made yet.' : 'No bookings match your search or filters.'}</p>
                         </div>
                     ) : (
                         <motion.div initial="hidden" animate="visible" variants={{ visible: { transition: { staggerChildren: 0.05 } } }}>

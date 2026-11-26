@@ -6,10 +6,11 @@ import { DropdownMenu, DropdownMenuContent, DropdownMenuCheckboxItem, DropdownMe
 import { Input } from "@/components/ui/input";
 import { Table, TableBody, TableCell, TableHead, TableHeader, TableRow } from "@/components/ui/table";
 import { Alert, AlertDescription, AlertTitle } from "@/components/ui/alert";
-import { BadgeCheck, BadgeX, Eye, ListFilter, Search, Loader2, AlertCircle } from 'lucide-react';
+import { Eye, ListFilter, Search, Loader2, AlertCircle } from 'lucide-react';
 import { motion } from 'framer-motion';
 import { useNavigate } from "react-router-dom";
 import { getAllProviders, ProviderBasicInfo } from '@/services/providerService';
+import { errorMessage } from '@/lib/apiError';
 
 const Providers = () => {
     const [searchTerm, setSearchTerm] = useState('');
@@ -29,37 +30,11 @@ const Providers = () => {
 
     const loadProviders = async () => {
         try {
-            console.log('🔄 Loading providers...');
             setIsLoading(true);
             setError(null);
-            const providers = await getAllProviders();
-            console.log('✅ Providers loaded successfully:', providers);
-            setAllProviders(providers);
-        } catch (error: any) {
-            console.error('❌ Error loading providers:', error);
-            console.error('Error details:', {
-                userMessage: error.userMessage,
-                message: error.message,
-                code: error.code,
-                response: error.response,
-                request: error.request
-            });
-            
-            let errorMessage = 'Failed to load providers';
-            
-            if (error.response) {
-                // Server responded with error
-                errorMessage = error.userMessage || error.response.data?.message || `Server error: ${error.response.status}`;
-            } else if (error.request) {
-                // No response from server
-                errorMessage = 'Cannot connect to server. Make sure the backend is running on http://localhost:8080';
-            } else {
-                // Other errors
-                errorMessage = error.message || 'An unexpected error occurred';
-            }
-            
-            console.error('Final error message:', errorMessage);
-            setError(errorMessage);
+            setAllProviders(await getAllProviders());
+        } catch (loadError) {
+            setError(errorMessage(loadError, 'Failed to load providers'));
         } finally {
             setIsLoading(false);
         }
@@ -159,12 +134,12 @@ const Providers = () => {
                                 {filteredProviders.length === 0 ? (
                                     <TableRow>
                                         <TableCell colSpan={6} className="text-center py-8 text-gray-500">
-                                            No providers found
+                                            {allProviders.length === 0 ? 'No providers have registered yet.' : 'No providers match your search or filters.'}
                                         </TableCell>
                                     </TableRow>
                                 ) : (
                                     filteredProviders.map((provider) => (
-                                    <motion.tr key={provider.email} variants={itemVariants} className="hover:bg-muted/50 transition-colors">
+                                    <motion.tr key={provider.providerId} variants={itemVariants} className="hover:bg-muted/50 transition-colors">
                                         <TableCell>
                                             <div className="font-medium">{provider.businessName}</div>
                                             <div className="text-sm text-muted-foreground">{provider.email}</div>
@@ -186,19 +161,8 @@ const Providers = () => {
                                                     variant="outline" 
                                                     size="icon" 
                                                     className="h-8 w-8 hover:bg-info-100 hover:text-info-600 border-info-200" 
-                                                    onClick={() => {
-                                                        console.log('=== NAVIGATION CLICK ===');
-                                                        console.log('Provider data being passed:', provider);
-                                                        console.log('Provider keys:', Object.keys(provider));
-                                                        console.log('Provider.providerId:', provider.providerId);
-                                                        console.log('Provider.email:', provider.email);
-                                                        console.log('========================');
-                                                        
-                                                        // Navigate to frontend-only provider view page
-                                                        navigate('/admin/providers/view', { 
-                                                            state: { provider } 
-                                                        });
-                                                    }}
+                                                    aria-label={`View ${provider.businessName}`}
+                                                    onClick={() => navigate(`/admin/providers/${provider.providerId}`)}
                                                 >
                                                     <Eye className="h-4 w-4" />
                                                 </Button>

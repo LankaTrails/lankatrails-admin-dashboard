@@ -1,14 +1,17 @@
 import { useParams, useNavigate } from "react-router-dom";
-import { Card, CardContent, CardDescription, CardHeader, CardTitle } from "@/components/ui/card";
+import { Card, CardContent } from "@/components/ui/card";
 import { Badge } from "@/components/ui/badge";
 import { Button } from "@/components/ui/button";
 import { motion } from "framer-motion";
-import { ArrowLeft, AlertCircle, Calendar, User, FileText, Image as ImageIcon, MessageSquare, CheckCircle, Clock, ChevronDown, DollarSign, X } from "lucide-react";
+import { ArrowLeft, AlertCircle, Calendar, User, FileText, Image as ImageIcon, MessageSquare, CheckCircle, Clock, DollarSign, X } from "lucide-react";
 import { useState } from "react";
 import { Textarea } from "@/components/ui/textarea";
 import { Complaint } from "@/types/complaints";
 import { useEffect } from "react";
-import { findComplaintById, updateComplaintStatus, updateComplaintResult, updateRefundStatus, sendFeedbackToProvider, sendFeedbackToTourist } from "@/services/complaintSection";
+import { findComplaintById, updateComplaintStatus, updateComplaintResult, processRefund, sendFeedbackToProvider, sendFeedbackToTourist } from "@/services/complaintSection";
+import type { ComplaintResult } from "@/types/complaints";
+import { errorMessage } from "@/lib/apiError";
+import { fileUrl } from "@/lib/config";
 import { Checkbox } from "@/components/ui/checkbox";
 import { Label } from "@/components/ui/label";
 import {
@@ -21,34 +24,14 @@ import {
 import { Input } from "@/components/ui/input";
 import { useToast } from "@/components/ui/use-toast";
 
-// Define the ComplaintResult type based on your backend expectations
-interface ComplaintResult {
-  faultType: "PROVIDER" | "APP" | "REJECT";
-  notes?: string;
-  refundAmount?: number;
-  refundReason?: string;
-}
-
-interface Message {
-  sender: string;
-  message: string;
-  date: string;
-  type: 'admin' | 'supplier' | 'tourist';
-}
-
 const ComplaintDetail = () => {
   const { id } = useParams();
   const navigate = useNavigate();
   const { toast } = useToast();
-  const [reply, setReply] = useState("");
   const [supplierMessage, setSupplierMessage] = useState("");
   const [touristMessage, setTouristMessage] = useState("");
   const [complaint, setComplaint] = useState<Complaint | null>(null);
   const [isLoading, setIsLoading] = useState(true);
-  const [replies, setReplies] = useState<Message[]>([
-    { sender: "Admin", message: "Thank you for your feedback. We are looking into this.", date: "2023-08-16", type: 'admin' },
-    { sender: "John Doe", message: "Please resolve this as soon as possible.", date: "2023-08-15", type: 'tourist' },
-  ]);
   const [resolutionStatus, setResolutionStatus] = useState({
     inProgress: false,
     notes: "",
@@ -59,7 +42,6 @@ const ComplaintDetail = () => {
     notes: "",
     faultType: "" as "PROVIDER" | "APP" | "REJECT" | ""
   });
-  const [detailsLoaded, setDetailsLoaded] = useState(false);
   const [resolutionSaved, setResolutionSaved] = useState(false);
   const [faultClassificationSaved, setFaultClassificationSaved] = useState(false);
   const [refundAmount, setRefundAmount] = useState("");
@@ -70,7 +52,7 @@ const ComplaintDetail = () => {
   const [isSaving, setIsSaving] = useState(false);
   const [isSavingFault, setIsSavingFault] = useState(false);
   // Add complaintResultValue to state
-  const [complaintResultValue, setComplaintResultValue] = useState("");
+  const [complaintResultValue, setComplaintResultValue] = useState<ComplaintResult | "">("");
   // State for complaint images
   const [complaintImages, setComplaintImages] = useState<string[]>([]);
   // State for image loading errors
@@ -82,7 +64,6 @@ const ComplaintDetail = () => {
         setIsLoading(true);
         const data = await findComplaintById(id);
         setComplaint(data);
-        console.log("Fetched complaint:", data);
 
         // Check for investigation status
         if (data.complaintStatus && data.complaintStatus !== "PENDING") {
@@ -97,26 +78,17 @@ const ComplaintDetail = () => {
             notes: data.investigationStartedDate ? `Investigation started on ${new Date(data.investigationStartedDate).toLocaleDateString()}` : "Investigation in progress"
           }));
           setResolutionSaved(true);
-          setDetailsLoaded(true);
         }
 
         // Check for complaint result and set fault type
         if (data.complaintResult != null) {
           // Map complaint result to fault type
-          let faultType: "PROVIDER" | "APP" | "REJECT" = "REJECT";
-          let resultValue = "";
-          
-          if (data.complaintResult === "REFUND_FROM_PROVIDER") {
-            faultType = "PROVIDER";
-            resultValue = "REFUND_FROM_PROVIDER";
-          } else if (data.complaintResult === "REFUND_FROM_COMPANY") {
-            faultType = "APP";
-            resultValue = "REFUND_FROM_COMPANY";
-          } else if (data.complaintResult === "REJECT") {
-            faultType = "REJECT";
-            resultValue = "REJECT";
-          }
-          
+          const faultType: "PROVIDER" | "APP" | "REJECT" =
+            data.complaintResult === "REFUND_FROM_PROVIDER" ? "PROVIDER"
+            : data.complaintResult === "REFUND_FROM_COMPANY" ? "APP"
+            : "REJECT";
+          const resultValue: ComplaintResult = data.complaintResult;
+
           setFaultClassificationSaved(true);
           // Set the fault type from complaintResult
           setResolutionStatus(prev => ({
@@ -150,17 +122,14 @@ const ComplaintDetail = () => {
         // Load complaint images from the database
         if (data.complaintImgs && Array.isArray(data.complaintImgs) && data.complaintImgs.length > 0) {
           setComplaintImages(data.complaintImgs);
-          console.log("Loaded complaint images:", data.complaintImgs);
         } else {
           setComplaintImages([]);
-          console.log("No complaint images found");
         }
         
       } catch (error) {
-        console.error('Error fetching complaint:', error);
         toast({
           title: "Error",
-          description: "Failed to load complaint details",
+          description: errorMessage(error, "Failed to load complaint details"),
           variant: "destructive",
         });
       } finally {
@@ -171,85 +140,30 @@ const ComplaintDetail = () => {
     fetchComplaint();
   }, [id, toast]);
 
-  const handleSendReply = () => {
-    if (reply.trim()) {
-      setReplies([
-        { sender: "Admin", message: reply, date: new Date().toISOString().slice(0, 10), type: 'admin' },
-        ...replies,
-      ]);
-      setReply("");
+
+  const handleSendSupplierMessage = async () => {
+    if (!complaint || !supplierMessage.trim()) return;
+    try {
+      await sendFeedbackToProvider(complaint.complaintId, supplierMessage.trim());
+      setComplaint({ ...complaint, adminToProvider: supplierMessage.trim() });
+      setSupplierMessage("");
+      toast({ description: "Feedback emailed to the provider" });
+    } catch (error) {
+      toast({ title: "Error", description: errorMessage(error, "Failed to send feedback to the provider"), variant: "destructive" });
     }
   };
 
- const handleSendSupplierMessage = async () => {
-  if (supplierMessage.trim()) {
+  const handleSendTouristMessage = async () => {
+    if (!complaint || !touristMessage.trim()) return;
     try {
-      const updateData={
-        adminToProvider: supplierMessage
-      }
-      // First, send the feedback to the provider via API
-      await sendFeedbackToProvider(complaint.complaintId, {
-       updateData
-      });
-
-      // Then update the local state to show the message in the UI
-      setReplies([
-        { sender: "Supplier", message: supplierMessage, date: new Date().toISOString().slice(0, 10), type: 'supplier' },
-        ...replies,
-      ]);
-      setSupplierMessage("");
-
-      // Show success toast
-      toast({
-        description: "Message sent to supplier successfully",
-        variant: "default",
-      });
-
-    } catch (error) {
-      console.error('Error sending feedback to provider:', error);
-      toast({
-        title: "Error",
-        description: "Failed to send message to supplier",
-        variant: "destructive",
-      });
-    }
-  }
-};
-
- const handleSendTouristMessage = async () => {
-  if (touristMessage.trim()) {
-    try {
-      const updateData={
-        adminToTourist: touristMessage
-      }
-      // First, send the feedback to the tourist via API
-      await sendFeedbackToTourist(complaint.complaintId, {
-       updateData
-      });
-
-      // Then update the local state to show the message in the UI
-      setReplies([
-        { sender: "Tourist", message: touristMessage, date: new Date().toISOString().slice(0, 10), type: 'tourist' },
-        ...replies,
-      ]);
+      await sendFeedbackToTourist(complaint.complaintId, touristMessage.trim());
+      setComplaint({ ...complaint, adminToTourist: touristMessage.trim() });
       setTouristMessage("");
-
-      // Show success toast
-      toast({
-        description: "Message sent to tourist successfully",
-        variant: "default",
-      });
-
+      toast({ description: "Feedback emailed to the tourist" });
     } catch (error) {
-      console.error('Error sending feedback to tourist:', error);
-      toast({
-        title: "Error",
-        description: "Failed to send message to tourist",
-        variant: "destructive",
-      });
+      toast({ title: "Error", description: errorMessage(error, "Failed to send feedback to the tourist"), variant: "destructive" });
     }
-  }
-};
+  };
 
   const handleResolutionChange = (inProgress: boolean) => {
     setResolutionStatus(prev => ({
@@ -260,7 +174,6 @@ const ComplaintDetail = () => {
     }));
     
     if (!inProgress) {
-      setDetailsLoaded(false);
       setSavedResolutionStatus(prev => ({
         ...prev,
         inProgress: false,
@@ -292,7 +205,7 @@ const ComplaintDetail = () => {
     try {
       const investigationStartedDate = new Date().toISOString();
 
-      const updatedComplaint = await updateComplaintStatus(complaint.complaintId, investigationStartedDate);
+      await updateComplaintStatus(complaint.complaintId, investigationStartedDate);
       
       // Update local complaint data
       setComplaint(prev => prev ? { ...prev, investigationStartedDate } : null);
@@ -304,7 +217,6 @@ const ComplaintDetail = () => {
       });
       
       setResolutionSaved(true);
-      setDetailsLoaded(true);
       
       toast({
         title: "Success",
@@ -312,10 +224,9 @@ const ComplaintDetail = () => {
       });
       
     } catch (error) {
-      console.error('Error updating complaint status:', error);
       toast({
         title: "Error",
-        description: "Failed to update complaint status",
+        description: errorMessage(error, "Failed to update the complaint status"),
         variant: "destructive",
       });
     } finally {
@@ -335,7 +246,7 @@ const ComplaintDetail = () => {
     
     setIsSavingFault(true);
     try {
-      let resultValue = "";
+      let resultValue: ComplaintResult;
       
       if (resolutionStatus.faultType === "APP") {
         resultValue = "REFUND_FROM_COMPANY";
@@ -345,11 +256,7 @@ const ComplaintDetail = () => {
         resultValue = "REJECT";
       }
 
-      const updateData = {
-        complaintResult: resultValue
-      };
-      
-      const updatedComplaint = await updateComplaintResult(complaint.complaintId, updateData);
+      await updateComplaintResult(complaint.complaintId, resultValue);
       
       // Update the saved resolution status with the fault type
       setSavedResolutionStatus(prev => ({
@@ -374,10 +281,9 @@ const ComplaintDetail = () => {
       });
       
     } catch (error) {
-      console.error('Error saving fault classification:', error);
       toast({
         title: "Error",
-        description: "Failed to save fault classification",
+        description: errorMessage(error, "Failed to save the fault classification"),
         variant: "destructive",
       });
     } finally {
@@ -406,31 +312,14 @@ const ComplaintDetail = () => {
     }
     
     try {
-      const updateData = {
-        complaintResult: complaintResultValue,
-        refundStatus: 'REFUNDED',
-        refundReason: refundReason
-      };
-
-      console.log("Refund update data:", updateData);
-      
-      const makeRefund = await updateRefundStatus(complaint.complaintId, updateData);
-      
-      toast({
-        description: "Refund processed successfully",
-        variant: "default",
-      });
-      
+      await processRefund(complaint.complaintId, { complaintResult: complaintResultValue, refundReason });
+      setComplaint({ ...complaint, refundStatus: "REFUNDED", refundReason });
       setRefundReasonProcessed(true);
       setRefundProcessed(true);
-      
+      toast({ description: "Refund issued through Stripe" });
     } catch (error) {
-      toast({
-        title: "Error",
-        description: "Failed to process refund",
-        variant: "destructive",
-      });
-      console.error("Refund processing error:", error);
+      // e.g. 409 when the complaint has no paid booking, 502 when Stripe rejects the refund
+      toast({ title: "Refund not processed", description: errorMessage(error, "Failed to process the refund"), variant: "destructive" });
     }
   };
 
@@ -445,21 +334,6 @@ const ComplaintDetail = () => {
   // Helper function to check if investigation has started
   const hasInvestigationStarted = () => {
     return complaint?.investigationStartedDate && complaint.investigationStartedDate !== "null";
-  };
-
-  // Get messages by type
-  const adminReplies = replies.filter(r => r.type === 'admin');
-  const supplierReplies = replies.filter(r => r.type === 'supplier');
-  const touristReplies = replies.filter(r => r.type === 'tourist');
-
-  // Helper function to get badge color based on sender type
-  const getMessageBadgeColor = (type: string) => {
-    switch (type) {
-      case 'admin': return 'bg-blue-100 text-blue-800 border-blue-200';
-      case 'supplier': return 'bg-green-100 text-green-800 border-green-200';
-      case 'tourist': return 'bg-purple-100 text-purple-800 border-purple-200';
-      default: return 'bg-gray-100 text-gray-800 border-gray-200';
-    }
   };
 
   if (isLoading) {
@@ -492,7 +366,7 @@ const ComplaintDetail = () => {
               <X className="h-8 w-8" />
             </button>
             <img 
-              src={selectedImage} 
+              src={fileUrl(selectedImage)} 
               alt="Complaint evidence" 
               className="max-w-full max-h-full object-contain"
             />
@@ -646,7 +520,7 @@ const ComplaintDetail = () => {
                         </div>
                       ) : (
                         <img 
-                          src={image} 
+                          src={fileUrl(image)} 
                           alt={`Complaint evidence ${index + 1}`} 
                           className="w-full h-48 object-cover transition-transform group-hover:scale-105"
                           onError={() => handleImageError(index)}
@@ -792,13 +666,18 @@ const ComplaintDetail = () => {
                   {/* Supplier Message Section */}
                   <div className="border-t border-primary/10 pt-4 mt-4">
                     <h4 className="font-medium text-green-700 mb-3 flex items-center gap-2">
-                      <User className="h-4 w-4" /> Message to Supplier
+                      <User className="h-4 w-4" /> Message to Provider
                     </h4>
+                    {complaint.adminToProvider && (
+                      <p className="mb-3 rounded-md border border-green-100 bg-green-50 p-3 text-sm text-green-900">
+                        <span className="font-medium">Last sent:</span> {complaint.adminToProvider}
+                      </p>
+                    )}
                     <div className="flex flex-col md:flex-row gap-4 items-end">
                       <Textarea
                         value={supplierMessage}
                         onChange={e => setSupplierMessage(e.target.value)}
-                        placeholder="Write a message to the supplier..."
+                        placeholder="Write a message to the provider..."
                         className="w-full md:w-2/3 min-h-[60px]"
                       />
                       <Button 
@@ -806,7 +685,7 @@ const ComplaintDetail = () => {
                         className="mt-2 md:mt-0 bg-green-600 hover:bg-green-700" 
                         disabled={!supplierMessage.trim()}
                       >
-                        Send to Supplier
+                        Send to Provider
                       </Button>
                     </div>
                   </div>
@@ -816,6 +695,11 @@ const ComplaintDetail = () => {
                     <h4 className="font-medium text-purple-700 mb-3 flex items-center gap-2">
                       <User className="h-4 w-4" /> Message to Tourist
                     </h4>
+                    {complaint.adminToTourist && (
+                      <p className="mb-3 rounded-md border border-purple-100 bg-purple-50 p-3 text-sm text-purple-900">
+                        <span className="font-medium">Last sent:</span> {complaint.adminToTourist}
+                      </p>
+                    )}
                     <div className="flex flex-col md:flex-row gap-4 items-end">
                       <Textarea
                         value={touristMessage}

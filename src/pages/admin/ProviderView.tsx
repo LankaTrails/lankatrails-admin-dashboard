@@ -1,14 +1,12 @@
-import { useLocation, useNavigate } from "react-router-dom";
+import { useNavigate, useParams } from "react-router-dom";
 import { Card, CardContent, CardHeader, CardTitle, CardDescription } from "@/components/ui/card";
 import { Badge } from "@/components/ui/badge";
 import { Button } from "@/components/ui/button";
-import { certificates } from "@/assets/certificates";
 import { Alert, AlertDescription, AlertTitle } from "@/components/ui/alert";
 import { motion } from "framer-motion";
 import { 
   ArrowLeft, 
   Mail, 
-  MapPin, 
   Building2, 
   IdCard, 
   Briefcase, 
@@ -26,33 +24,22 @@ import {
   UserCircle
 } from "lucide-react";
 import { useState, useEffect } from "react";
-import { 
-  ProviderBasicInfo, 
-  getProviderById, 
-  ProviderDetailInfo, 
+import {
+  getProviderById,
+  ProviderDetailInfo,
   approveOrRejectLicense,
   LicenseDTO,
-  ContactPersonDTO
+  type CategoryName,
 } from "@/services/providerService";
 import { useToast } from "@/hooks/use-toast";
-
-const getCategoryIdFromName = (name: string): number => {
-  const map: Record<string, number> = {
-    'ACCOMMODATION': 1,
-    'ACTIVITY': 2,
-    'TOUR_GUIDE': 3,
-    'TRANSPORT': 4,
-    'FOOD_BEVERAGE': 5
-  };
-  return map[name] || 1;
-};
+import { errorMessage } from "@/lib/apiError";
+import { fileUrl } from "@/lib/config";
 
 const ProviderView = () => {
-  const location = useLocation();
+  const { providerId: providerIdParam } = useParams();
+  const providerId = Number(providerIdParam);
   const navigate = useNavigate();
   const { toast } = useToast();
-  
-  const basicProvider = location.state?.provider as ProviderBasicInfo | undefined;
   
   const [provider, setProvider] = useState<ProviderDetailInfo | null>(null);
   const [isLoading, setIsLoading] = useState(true);
@@ -60,116 +47,43 @@ const ProviderView = () => {
   const [viewFile, setViewFile] = useState<null | { url: string; title: string }>(null);
   const [processingLicense, setProcessingLicense] = useState<number | null>(null);
 
-  // Load full provider details when component mounts
+  // Load the provider from the id in the URL (works after a page reload)
   useEffect(() => {
     const loadProviderDetails = async () => {
-      if (!basicProvider) {
-        setError('No provider data provided. Please navigate from the Providers page.');
+      if (!Number.isInteger(providerId) || providerId <= 0) {
+        setError('Invalid provider id.');
         setIsLoading(false);
         return;
       }
-
-      // Get provider ID from basicProvider (backend uses providerId field)
-      const providerId = basicProvider.providerId;
-      
-      if (!providerId) {
-        setError('Provider ID not found. Please try again from the providers list.');
-        setIsLoading(false);
-        return;
-      }
-
       try {
         setIsLoading(true);
         setError(null);
-        const data = await getProviderById(providerId);
-        console.log('Provider details:', data); // Keep only this relevant log
-        setProvider(data);
-      } catch (error: any) {
-        
-        // Create a fallback provider object from basicProvider data
-        const fallbackProvider: ProviderDetailInfo = {
-          providerID: basicProvider.providerId,
-          email: basicProvider.email,
-          profilePicUrl: '',
-          status: basicProvider.status,
-          businessDescription: 'Description not available',
-          businessName: basicProvider.businessName,
-          businessRegistrationNumber: 'PV/00228455',
-          businessRegistrationUrl: "https://bpo.lk/wp-content/uploads/2023/10/Benefits-of-Company-Registration-Sri-Lanka-Form-2a.png",
-          businessType: basicProvider.businessType,
-          coverImgUrl: '',
-          pendingLicenses: null,
-          contactPerson: null
-        };
-        
-        setProvider(fallbackProvider);
-        setError(null); // Clear error since we have fallback data
+        setProvider(await getProviderById(providerId));
+      } catch (loadError) {
+        setError(errorMessage(loadError, 'Failed to load provider details'));
       } finally {
         setIsLoading(false);
       }
     };
 
     loadProviderDetails();
-  }, [basicProvider]);
+  }, [providerId]);
 
   const handleLicenseAction = async (license: LicenseDTO, action: 'APPROVED' | 'REJECTED') => {
-    if (!basicProvider?.providerId) {
-      toast({
-        title: 'Error',
-        description: 'Provider ID not found',
-        variant: 'destructive'
-      });
-      return;
-    }
-
-    const providerId = basicProvider.providerId;
-
     try {
       setProcessingLicense(license.licenseId);
-      
-      const categoryId = getCategoryIdFromName(license.category);
-      
-      // Log the request payload for debugging
-      console.log('Sending license action request:', {
-        providerId,
-        category: {
-          categoryId,
-          categoryName: license.category
-        },
-        status: action
-      });
-      
-      // Format the request payload according to the API requirements
-      const requestPayload = {
-        providerId: providerId,
-        category: {
-          categoryId: categoryId,
-          categoryName: license.category.toUpperCase() // Ensure category name is in uppercase
-        },
-        status: action
-      };
-      
-      console.log('Sending request with payload:', requestPayload);
-      
-      await approveOrRejectLicense(requestPayload);
-
-      // Reload provider data from backend to reflect updated statuses accurately
-      const refreshed = await getProviderById(providerId);
-      setProvider(refreshed);
-
+      await approveOrRejectLicense(providerId, license.category as CategoryName, action);
+      // Reload so every category's status reflects the backend
+      setProvider(await getProviderById(providerId));
       toast({
-        title: action === 'APPROVED' ? 'License Approved' : 'License Rejected',
-        description: `${license.categoryName} license has been ${action.toLowerCase()} successfully.`,
+        title: action === 'APPROVED' ? 'Licence approved' : 'Licence rejected',
+        description: `${license.categoryName} licence has been ${action.toLowerCase()}.`,
         variant: action === 'APPROVED' ? 'default' : 'destructive'
       });
-
-      // Ensure a final refresh for consistency
-      const data = await getProviderById(providerId);
-      setProvider(data);
-    } catch (error: any) {
+    } catch (actionError) {
       toast({
         title: 'Error',
-        description: error.userMessage || error.message || 'Failed to process license',
+        description: errorMessage(actionError, 'Failed to update the licence'),
         variant: 'destructive'
       });
     } finally {
@@ -417,21 +331,6 @@ const ProviderView = () => {
                 </div>
               </div>
 
-              {/* Location */}
-              {basicProvider?.city && (
-                <div className="bg-white rounded-lg p-4 shadow-sm border border-primary-100">
-                  <div className="flex items-start gap-3">
-                    <div className="p-2 bg-primary-100 rounded-lg">
-                      <MapPin className="h-5 w-5 text-primary" />
-                    </div>
-                    <div className="flex-1">
-                      <p className="text-sm text-gray-500 mb-1">City</p>
-                      <p className="text-base font-semibold text-gray-800">{basicProvider.city}</p>
-                    </div>
-                  </div>
-                </div>
-              )}
-
               {/* Status */}
               <div className="bg-white rounded-lg p-4 shadow-sm border border-primary-100">
                 <div className="flex items-start gap-3">
@@ -528,7 +427,7 @@ const ProviderView = () => {
                       <Button 
                         size="sm" 
                         variant="link"
-                        onClick={() => setViewFile({ url: provider.contactPerson!.identityDocumentUrl, title: 'Contact Person Identity Document' })}
+                        onClick={() => setViewFile({ url: fileUrl(provider.contactPerson!.identityDocumentUrl), title: 'Contact Person Identity Document' })}
                         className="text-secondary p-0 h-auto"
                       >
                         <ExternalLink className="h-4 w-4 mr-1" />
@@ -557,7 +456,7 @@ const ProviderView = () => {
                   <Button 
                     size="sm" 
                     variant="link"
-                    onClick={() => setViewFile({ url: provider.businessRegistrationUrl, title: 'Business Registration Document' })}
+                    onClick={() => setViewFile({ url: fileUrl(provider.businessRegistrationUrl), title: 'Business Registration Document' })}
                     className="text-primary p-0 h-auto"
                   >
                     <ExternalLink className="h-4 w-4 mr-1" />
@@ -615,7 +514,7 @@ const ProviderView = () => {
                         <Button 
                           size="sm" 
                           variant="outline"
-                          onClick={() => setViewFile({ url: license.licenseUrl, title: `${license.categoryName} License` })}
+                          onClick={() => setViewFile({ url: fileUrl(license.licenseUrl), title: `${license.categoryName} License` })}
                           className="border-info-300 hover:bg-info-100 text-info-700"
                         >
                           <ExternalLink className="h-4 w-4 mr-1" /> View Document

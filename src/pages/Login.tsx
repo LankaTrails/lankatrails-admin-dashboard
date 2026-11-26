@@ -3,44 +3,35 @@ import { Button } from '@/components/ui/button';
 import { Card, CardContent, CardDescription, CardHeader, CardTitle } from '@/components/ui/card';
 import { Input } from '@/components/ui/input';
 import { Label } from '@/components/ui/label';
-import { Link, useNavigate } from 'react-router-dom';
-import { Eye, EyeOff, LogIn } from 'lucide-react';
+import { useLocation, useNavigate } from 'react-router-dom';
+import { AlertCircle, Eye, EyeOff, Loader2, LogIn } from 'lucide-react';
 import { motion } from 'framer-motion';
-import Header from '@/components/Header';
+import { Alert, AlertDescription } from '@/components/ui/alert';
 import { useAuth } from '@/hooks/useAuth';
-import { useAppSelector } from '@/store';
-import type { User } from '@/types/authTypes';
 
 
 const Login = () => {
-  const {login} = useAuth();
+  const { login, isLoading, error: sessionError } = useAuth();
   const [showPassword, setShowPassword] = useState(false);
-  
-  const [email, setEmail] =useState('');
-  const [password,setPassowrd] = useState('');
-
+  const [email, setEmail] = useState('');
+  const [password, setPassword] = useState('');
+  const [error, setError] = useState<string | null>(null);
   const navigate = useNavigate();
-  const {user} = useAppSelector(state => state.auth);
+  const location = useLocation();
+  const from = (location.state as { from?: string } | null)?.from ?? '/admin';
+
   const handleLogin = async (e: React.FormEvent) => {
     e.preventDefault();
-    // Handle login logic here
-    try {
-      
-       const loggedInUser = await login(email,password) as User;
-      //  console.log("redux ",loggedInUser.role);
-       if (loggedInUser && loggedInUser.role==='ROLE_ADMIN'){
-          
-          navigate('/admin');
-       }else{
-        console.log('Not an Admin')
-       }
-       
-    } catch (err:any) {
-      alert(err.message || 'Login Failed');
-      
+    setError(null);
+    const loginError = await login(email.trim(), password);
+    if (loginError) {
+      setError(loginError);
+      return;
     }
-   
+    navigate(from, { replace: true });
   };
+
+  const shownError = error ?? sessionError;
 
   return (
     <div 
@@ -48,7 +39,6 @@ const Login = () => {
       style={{ backgroundImage: "url('/login.jpg')" }}
     >
       <div className="min-h-screen bg-black/40">
-        {/* <Header /> */}
         <div className="container mx-auto px-4 py-12 flex items-center justify-center min-h-screen">
           <motion.div 
             className="max-w-md w-full"
@@ -79,7 +69,7 @@ const Login = () => {
                 animate={{ opacity: 1, y: 0 }}
                 transition={{ duration: 0.5, delay: 0.4 }}
               >
-                Sign in to manage your services
+                Sign in to manage the LankaTrails platform
               </motion.p>
             </div>
 
@@ -87,7 +77,7 @@ const Login = () => {
               <CardHeader className="space-y-1">
                 <CardTitle className="text-2xl text-center">Welcome Back!</CardTitle>
                 <CardDescription className="text-center">
-                  Enter your credentials to access your dashboard
+                  Administrator accounts only
                 </CardDescription>
               </CardHeader>
               <CardContent>
@@ -97,7 +87,7 @@ const Login = () => {
                     <Input
                       id="email"
                       type="email"
-                      placeholder="your.business@example.com"
+                      placeholder="admin@example.com"
                       required
                       className="bg-white/70 h-11"
                       value={email}
@@ -115,7 +105,7 @@ const Login = () => {
                         required
                         className="bg-white/70 h-11 pr-10"
                         value={password}
-                        onChange={(e) => setPassowrd(e.target.value)}
+                        onChange={(e) => setPassword(e.target.value)}
                       />
                       <button
                         type="button"
@@ -127,19 +117,16 @@ const Login = () => {
                     </div>
                   </div>
 
-                  <div className="flex items-center justify-between text-sm">
-                    <div className="flex items-center space-x-2">
-                      <input type="checkbox" id="remember" className="rounded border-gray-400" />
-                      <Label htmlFor="remember" className="font-normal">Remember me</Label>
-                    </div>
-                    <Link to="/forgot-password" className="font-medium text-primary-600 hover:text-primary-700">
-                      Forgot password?
-                    </Link>
-                  </div>
+                  {shownError && (
+                    <Alert variant="destructive">
+                      <AlertCircle className="h-4 w-4" />
+                      <AlertDescription>{shownError}</AlertDescription>
+                    </Alert>
+                  )}
 
                   <motion.div whileHover={{ scale: 1.02 }} whileTap={{ scale: 0.98 }}>
-                    <Button type="submit" className="w-full bg-primary-500 hover:bg-primary-600 text-white font-bold py-3 text-base h-auto">
-                      Sign In
+                    <Button type="submit" disabled={isLoading} className="w-full bg-primary-500 hover:bg-primary-600 text-white font-bold py-3 text-base h-auto">
+                      {isLoading ? <Loader2 className="h-5 w-5 animate-spin" /> : 'Sign In'}
                     </Button>
                   </motion.div>
                 </form>

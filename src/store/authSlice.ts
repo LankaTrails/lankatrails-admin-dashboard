@@ -1,11 +1,11 @@
-import { createSlice, createAsyncThunk } from '@reduxjs/toolkit';
-import type { PayloadAction } from '@reduxjs/toolkit';
-import api, { setAccessToken } from '@/api/axiosInstance';
-import type { User } from '@/types/authTypes';
+import { createSlice, createAsyncThunk } from "@reduxjs/toolkit";
+import api, { refreshAccessToken, setAccessToken } from "@/api/axiosInstance";
+import { errorMessage, toApiError } from "@/lib/apiError";
+import type { AuthUser } from "@/types/auth";
 
 interface AuthState {
   isAuthenticated: boolean;
-  user: User | null;
+  user: AuthUser | null;
   isLoading: boolean;
   error: string | null;
 }
@@ -17,90 +17,67 @@ const initialState: AuthState = {
   error: null,
 };
 
-export const login = createAsyncThunk(
-  'auth/login',
-  async ({ email, password }: { email: string; password: string }, { rejectWithValue }) => {
-    try {
-      const res = await api.post('/auth/login', { email, password });
-      const { jwtToken } = res.data.data;
-      setAccessToken(jwtToken);
-      const profileRes = await api.get('/auth/logged-user');
-      console.log('Profile fetched after login:', profileRes.data.data);
-      return profileRes.data.data as User;
-    } catch (err: any) {
-      return rejectWithValue(err.response?.data?.message || 'Login failed');
-    }
+const NOT_ADMIN = "This account does not have administrator access.";
+
+async function fetchAdminProfile(): Promise<AuthUser> {
+  const res = await api.get("/auth/logged-user");
+  const user = res.data.data as AuthUser;
+  if (user.role !== "ROLE_ADMIN") {
+    // A provider or tourist must not keep a session in the admin app
+    await api.post("/auth/logout").catch(() => undefined);
+    setAccessToken(null);
+    throw { code: "NOT_ADMIN", message: NOT_ADMIN, userMessage: NOT_ADMIN };
   }
+  return user;
+}
+
+export const login = createAsyncThunk<AuthUser, { email: string; password: string }, { rejectValue: string }>(
+  "auth/login",
+  async ({ email, password }, { rejectWithValue }) => {
+    try {
+      const res = await api.post("/auth/login", { email, password });
+      setAccessToken(res.data.data.jwtToken);
+      return await fetchAdminProfile();
+    } catch (err) {
+      setAccessToken(null);
+      const apiError = (err as { code?: string }).code === "NOT_ADMIN" ? err : toApiError(err, "Login failed");
+      return rejectWithValue(errorMessage(apiError, "Login failed"));
+    }
+  },
 );
 
-export const refreshToken = createAsyncThunk(
-  'auth/refreshToken',
+/** Uses the refresh cookie to resume a session after a page reload. */
+export const restoreSession = createAsyncThunk<AuthUser, void, { rejectValue: string }>(
+  "auth/restoreSession",
   async (_, { rejectWithValue }) => {
     try {
-      const res = await api.post('/auth/refresh-token');
-      const { jwtToken } = res.data.data;
-      setAccessToken(jwtToken);
-      return jwtToken;
-    } catch (err: any) {
-      return rejectWithValue('Session expired. Please login again.');
-    }
-  }
-);
-
-export const fetchProfile = createAsyncThunk(
-  'auth/fetchProfile',
-  async (_, { rejectWithValue }) => {
-    try {
-      const res = await api.get('/auth/logged-user');
-      console.log('Fetched profile:', res.data.data);
-      return res.data.data as User;
+      await refreshAccessToken();
+      return await fetchAdminProfile();
     } catch {
-      return rejectWithValue('Failed to fetch profile');
+      setAccessToken(null);
+      return rejectWithValue("No active session");
     }
-  }
+  },
 );
 
-export const restoreSession = createAsyncThunk(
-  'auth/restoreSession',
-  async (_, { dispatch, rejectWithValue }) => {
-    try {
-      // Only attempt refresh if we don't already have a valid token
-      const newToken = await dispatch(refreshToken()).unwrap();
-      if (!newToken) throw new Error('No token received');
-
-      const profile = await dispatch(fetchProfile()).unwrap();
-      return profile;
-    } catch (error) {
-      await dispatch(logoutUser());
-      return rejectWithValue('Session restoration failed');
-    }
-  }
-);
-
-export const logoutUser = createAsyncThunk('auth/logout', async () => {
-  try {
-    await api.post('/auth/logout');
-  } catch { }
+export const logoutUser = createAsyncThunk("auth/logout", async () => {
+  await api.post("/auth/logout").catch(() => undefined);
   setAccessToken(null);
 });
 
 const authSlice = createSlice({
-  name: 'auth',
+  name: "auth",
   initialState,
   reducers: {
     sessionExpired: (state) => {
       state.isAuthenticated = false;
       state.user = null;
-      state.error = 'Session expired';
-    },
-    setAuthState: (state, action: PayloadAction<{ isAuthenticated: boolean; user: User | null }>) => {
-      state.isAuthenticated = action.payload.isAuthenticated;
-      state.user = action.payload.user;
+      state.error = "Your session has expired. Please sign in again.";
     },
   },
-  extraReducers: builder => {
+  extraReducers: (builder) => {
     builder
-      .addCase(login.pending, state => {
+      .addCase(login.pending, (state) => {
         state.isLoading = true;
         state.error = null;
       })
@@ -108,44 +85,28 @@ const authSlice = createSlice({
         state.isAuthenticated = true;
         state.user = action.payload;
         state.isLoading = false;
-        state.error = null;
       })
       .addCase(login.rejected, (state, action) => {
+        state.isAuthenticated = false;
+        state.user = null;
         state.isLoading = false;
-        state.error = action.payload as string;
-        state.isAuthenticated = false;
-      })
-      .addCase(fetchProfile.fulfilled, (state, action) => {
-        state.isAuthenticated = true;
-        state.user = action.payload;
-      })
-      .addCase(fetchProfile.rejected, (state) => {
-        state.isAuthenticated = false;
-        state.user = null;
-      })
-      .addCase(logoutUser.fulfilled, state => {
-        state.isAuthenticated = false;
-        state.user = null;
-        state.error = null;
+        state.error = action.payload ?? "Login failed";
       })
       .addCase(restoreSession.fulfilled, (state, action) => {
         state.isAuthenticated = true;
         state.user = action.payload;
-        state.isLoading = false;
-        state.error = null;
-      })
-      .addCase(restoreSession.pending, (state) => {
-        state.isLoading = true;
-        state.error = null;
       })
       .addCase(restoreSession.rejected, (state) => {
         state.isAuthenticated = false;
         state.user = null;
-        state.isLoading = false;
-        state.error = 'Session restoration failed';
+      })
+      .addCase(logoutUser.fulfilled, (state) => {
+        state.isAuthenticated = false;
+        state.user = null;
+        state.error = null;
       });
-  }
+  },
 });
 
-export const { sessionExpired, setAuthState } = authSlice.actions;
+export const { sessionExpired } = authSlice.actions;
 export default authSlice.reducer;

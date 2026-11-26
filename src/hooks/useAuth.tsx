@@ -1,37 +1,29 @@
-import { useCallback, useRef } from 'react';
-import { useAppDispatch, useAppSelector } from '@/store';
-import { login, logoutUser, restoreSession as restoreSessionAction } from '@/store/authSlice';
+import { useCallback } from "react";
+import { useAppDispatch, useAppSelector } from "@/store";
+import { login as loginAction, logoutUser, restoreSession as restoreSessionAction } from "@/store/authSlice";
 
 export const useAuth = () => {
   const dispatch = useAppDispatch();
-  const authState = useAppSelector(state => state.auth);
-  const restoreSessionRef = useRef<Promise<any> | null>(null);
+  const authState = useAppSelector((state) => state.auth);
 
-  const restoreSession = useCallback(async () => {
-    // Return existing promise if restoration is already in progress
-    if (restoreSessionRef.current) {
-      return restoreSessionRef.current;
-    }
-    
-    try {
-      const promise = dispatch(restoreSessionAction()).unwrap();
-      restoreSessionRef.current = promise;
-      const result = await promise;
-      return result;
-    } catch (error) {
-      throw error;
-    } finally {
-      restoreSessionRef.current = null;
-    }
-  }, [dispatch]);
+  /** Resolves to null on success, or the error message to show. */
+  const login = useCallback(
+    async (email: string, password: string): Promise<string | null> => {
+      const result = await dispatch(loginAction({ email, password }));
+      return loginAction.fulfilled.match(result) ? null : (result.payload ?? "Login failed");
+    },
+    [dispatch],
+  );
+
+  const logout = useCallback(() => dispatch(logoutUser()), [dispatch]);
+
+  const restoreSession = useCallback(() => dispatch(restoreSessionAction()), [dispatch]);
 
   return {
     ...authState,
-    login: async (email: string, password: string) => {
-      const result = await dispatch(login({ email, password }));
-      return result.payload;
-    },
-    logout: () => dispatch(logoutUser()),
-    restoreSession
+    isAdmin: authState.isAuthenticated && authState.user?.role === "ROLE_ADMIN",
+    login,
+    logout,
+    restoreSession,
   };
 };

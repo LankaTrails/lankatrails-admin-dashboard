@@ -3,15 +3,17 @@ import { DollarSign, Users, ShoppingCart, Activity, Loader2, AlertCircle } from 
 import { motion } from 'framer-motion';
 import { BarChart, Bar, LineChart, Line, PieChart, Pie, Cell, XAxis, YAxis, CartesianGrid, Tooltip, Legend, ResponsiveContainer } from 'recharts';
 import { useState, useEffect } from 'react';
-import { getDashboardAnalytics, getProvidersByLocation, getProviderStats, DashboardAnalytics } from '@/services/analyticsService';
+import { getDashboardAnalytics, getProviderOverview, DashboardAnalytics, LocationCount, ProviderOverview } from '@/services/analyticsService';
+import { errorMessage } from '@/lib/apiError';
+import { formatCurrency } from '@/lib/format';
 import { Alert, AlertDescription } from '@/components/ui/alert';
 
 const COLORS = ['#007E6A', '#8B5CF6', '#F59E0B', '#EF4444', '#3B82F6', '#10B981'];
 
 const Analytics = () => {
   const [dashboardData, setDashboardData] = useState<DashboardAnalytics | null>(null);
-  const [providerStats, setProviderStats] = useState<any>(null);
-  const [locationData, setLocationData] = useState<any[]>([]);
+  const [providerStats, setProviderStats] = useState<ProviderOverview | null>(null);
+  const [locationData, setLocationData] = useState<LocationCount[]>([]);
   const [isLoading, setIsLoading] = useState(true);
   const [error, setError] = useState<string | null>(null);
 
@@ -27,19 +29,12 @@ const Analytics = () => {
       setIsLoading(true);
       setError(null);
       
-      // Fetch all analytics data in parallel
-      const [dashboard, providers, locations] = await Promise.all([
-        getDashboardAnalytics(),
-        getProviderStats(),
-        getProvidersByLocation()
-      ]);
-
+      const [dashboard, providers] = await Promise.all([getDashboardAnalytics(), getProviderOverview()]);
       setDashboardData(dashboard);
       setProviderStats(providers);
-      // Convert location data to pie chart format
-      setLocationData(locations.map(loc => ({ name: loc.location, value: loc.providers })));
-    } catch (err: any) {
-      setError(err.userMessage || err.message || 'Failed to load analytics data');
+      setLocationData(providers.byLocation);
+    } catch (loadError) {
+      setError(errorMessage(loadError, 'Failed to load analytics data'));
     } finally {
       setIsLoading(false);
     }
@@ -57,19 +52,19 @@ const Analytics = () => {
       title: "Total Tourists", 
       value: dashboardData.kpis.totalUniqueTourists.toString(), 
       icon: Users, 
-      change: `+${dashboardData.growthMetrics.touristGrowthRate.toFixed(1)}%`, 
+      change: `${dashboardData.growthMetrics.touristGrowthRate >= 0 ? '+' : ''}${dashboardData.growthMetrics.touristGrowthRate.toFixed(1)}%`, 
       changeType: dashboardData.growthMetrics.touristGrowthRate >= 0 ? "increase" : "decrease" 
     },
     { 
       title: "Total Revenue", 
-      value: `$${dashboardData.kpis.totalRevenue.toLocaleString()}`, 
+      value: formatCurrency(dashboardData.kpis.totalRevenue), 
       icon: DollarSign, 
-      change: `$${dashboardData.recentPerformance.recentRevenue.toLocaleString()} last 30 days`, 
+      change: `${formatCurrency(dashboardData.recentPerformance.recentRevenue)} last 30 days`, 
       changeType: "neutral" 
     },
     { 
       title: "Avg Booking Value", 
-      value: `$${dashboardData.kpis.averageBookingValue.toLocaleString()}`, 
+      value: formatCurrency(dashboardData.kpis.averageBookingValue), 
       icon: Activity, 
       change: `${providerStats.totalProviders} providers`, 
       changeType: "neutral" 
@@ -148,7 +143,7 @@ const Analytics = () => {
                   }))} margin={{ top: 5, right: 20, left: -10, bottom: 5 }}>
                     <CartesianGrid strokeDasharray="3 3" vertical={false} />
                     <XAxis dataKey="month" fontSize={12} tickLine={false} axisLine={false} />
-                    <YAxis fontSize={12} tickLine={false} axisLine={false} tickFormatter={(value) => `$${(value / 1000).toFixed(0)}k`} />
+                    <YAxis fontSize={12} tickLine={false} axisLine={false} tickFormatter={(value) => `${(value / 1000).toFixed(0)}k`} />
                     <Tooltip cursor={{fill: 'rgba(100,100,100,0.1)'}} />
                     <Legend />
                     <Line type="monotone" dataKey="revenue" stroke="#16a34a" strokeWidth={2} dot={{ r: 4 }} activeDot={{ r: 6 }} />
@@ -206,7 +201,7 @@ const Analytics = () => {
               ) : (
                 <PieChart>
                   <Pie data={locationData} dataKey="value" nameKey="name" cx="50%" cy="50%" outerRadius={100} labelLine={false} label={({ name, percent }) => `${name} ${(percent * 100).toFixed(0)}%`}>
-                    {locationData.map((entry, index) => <Cell key={`cell-${index}`} fill={COLORS[index % COLORS.length]} />)}
+                    {locationData.map((_entry, index) => <Cell key={`cell-${index}`} fill={COLORS[index % COLORS.length]} />)}
                   </Pie>
                   <Tooltip />
                   <Legend />
